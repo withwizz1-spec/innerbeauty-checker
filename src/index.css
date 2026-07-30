@@ -1,0 +1,690 @@
+/* ============================================
+   디자인 토큰 — "캡슐 팝" (민트→라임→옐로우 그라데이션 + 글래스모피즘)
+   색·간격·라운드를 여기 한 곳에서 정의하고 앱 전체가 공유
+   (등급 상태색은 접근성 검증을 거친 값이라 ingredientGrade.js에 별도 유지)
+   ============================================ */
+:root {
+  --brand: #0d9488; /* 민트그린 포인트 — 등급 '안전' 초록과 헷갈리지 않게 청록 계열 */
+  --brand-strong: #0f766e;
+  --brand-soft: #effaf6;
+  --brand-border: #bfe8db;
+  --brand-gradient: linear-gradient(135deg, #0d9488, #0aa887);
+
+  --accent-warm: #ff9a76; /* 로고·뱃지 포인트 — 비타민 젤리 느낌의 보조색 */
+  --accent-yellow: #ffd166;
+
+  --bg-gradient: linear-gradient(160deg, #eafff5 0%, #d9f6d3 42%, #fff4d6 100%);
+  --surface: #ffffff; /* 카드 배경 — 그라데이션 위에 뜨는 흰 카드 */
+  --glass: rgba(255, 255, 255, 0.55); /* 검색창 등 반투명 유리 표면 */
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --border: #e4eae7;
+
+  --text-h: #0c2b24;
+  --text: #274a3f;
+  --text-muted: #6b8078;
+
+  --radius: 20px; /* 카드 */
+  --radius-sm: 14px; /* 작은 박스 */
+  --shadow: 0 1px 2px rgba(20, 50, 40, 0.05), 0 10px 28px rgba(13, 148, 136, 0.1);
+
+  --sans: 'Pretendard Variable', Pretendard, system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  font: 16px/1.55 var(--sans);
+  color: var(--text);
+  color-scheme: light; /* 폼 컨트롤까지 라이트 고정 (컴포넌트 색이 라이트 기준) */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-gradient) fixed;
+}
+
+/* 본문 컬럼 — 한 줄 폭을 읽기 좋은 넓이로 제한, 작은 화면에선 꽉 채움 */
+#root {
+  max-width: 760px;
+  margin: 0 auto;
+  min-height: 100svh;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+@media (max-width: 480px) {
+  #root {
+    padding: 1rem 0.9rem 3rem;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text-h);
+  line-height: 1.3;
+}
+
+p {
+  margin: 0;
+}
+
+/* ============================================
+   기본 컨트롤 — 버튼·입력창 공통 스타일
+   ============================================ */
+button {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  min-height: 40px; /* 모바일 터치 타깃 확보 */
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+button:hover {
+  border-color: var(--brand-border);
+  background: var(--brand-soft);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  background: var(--surface);
+  color: var(--text-h);
+  min-height: 40px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -1px;
+  border-color: var(--brand);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   유틸리티 클래스 — 반복되는 패턴을 클래스로
+   ============================================ */
+.btn-primary {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--brand-strong);
+  border-color: transparent;
+  color: #fff;
+}
+
+.btn-ghost {
+  border: none;
+  background: none;
+  color: var(--text);
+  padding: 0.4rem 0.6rem;
+}
+
+.btn-ghost:hover {
+  background: var(--brand-soft);
+}
+
+/* 성분 칩 — 기본 버튼의 최소 높이/테두리를 해제한 작은 알약 버튼 */
+button.chip {
+  min-height: auto;
+  border: none;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+/* 텍스트처럼 보이는 인라인 버튼 (ⓘ 안내 토글, 신고하기 링크 등) */
+button.btn-plain {
+  min-height: auto;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 4px;
+}
+
+button.btn-plain:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 0.9rem 1rem;
+  }
+}
+
+/* 클릭 가능한 목록 카드 — 살짝 떠오르는 hover */
+li.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(13, 148, 136, 0.16);
+}
+
+/* 반투명 유리 표면 — 검색창·탭처럼 그라데이션 배경 위에 얹히는 요소 */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.12);
+  padding: 0.4rem;
+}
+
+/* 탭(세그먼트) — 제품명 검색 / 성분표 스캔 전환 */
+.segment {
+  display: flex;
+  width: 100%;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 0.15rem;
+}
+
+.segment button {
+  flex: 1;
+  border: none;
+  background: none;
+  min-height: 36px;
+  padding: 0.35rem 1rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.segment button.active {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 검색창 — 인풋+버튼을 하나의 알약 안에 담는 글래스 서치바 */
+.search-bar {
+  display: flex;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  padding: 0.3rem 0.3rem 0.3rem 1rem;
+  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.14);
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  min-height: 40px;
+  padding: 0.5rem 0;
+}
+
+.search-bar input:focus-visible {
+  outline: none;
+}
+
+.search-bar button {
+  flex-shrink: 0;
+}
+
+/* 상단 고정 헤더 — 화면(홈/결과/상세/성분상세/로그인) 전환 시에도 유지되는 뒤로가기·타이틀 바 */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  margin: -1.5rem -1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    margin: -1rem -0.9rem 1.25rem;
+    padding: 0.75rem 0.9rem;
+  }
+}
+
+/* 헤더 로고 아이콘 — 코랄/옐로우 그라데이션 알약 */
+.logo-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-warm), var(--accent-yellow));
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+/* 로그인 상태 요약 칩 — 헤더 우측, 누르면 계정 패널 토글 */
+.auth-trigger {
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
+}
+
+/* 계정 아바타 — 이메일 첫 글자를 브랜드 그라데이션 원 안에 표시 */
+.avatar-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* 카드형 라디오 선택지 목록 — 개인화 모드 선택 등 (하나만 고를 수 있는 목록) */
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.9rem 1.1rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.option-card:hover {
+  border-color: var(--brand-border);
+  background: var(--surface);
+}
+
+.option-card.selected {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+/* 알레르기 다중 선택 — 원형 아이콘 그리드 (21종이 다 펼쳐져도 조잡해 보이지 않도록 촘촘히 배치) */
+.allergen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 0.75rem 0.3rem;
+  margin-top: 1rem;
+}
+
+.allergen-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: auto;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.allergen-toggle .allergen-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.allergen-toggle:hover .allergen-icon {
+  border-color: var(--brand-border);
+}
+
+.allergen-toggle.selected .allergen-icon {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+
+.allergen-toggle .allergen-label {
+  font-size: 0.68rem;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.allergen-toggle.selected .allergen-label {
+  color: var(--brand-strong);
+  font-weight: 700;
+}
+
+/* 성분표 스캔 — 사진 촬영/업로드 드롭존 */
+.upload-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 3rem 1.5rem;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.upload-dropzone:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.upload-dropzone .upload-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.upload-dropzone .upload-title {
+  font-weight: 700;
+  color: var(--brand-strong);
+  font-size: 1rem;
+}
+
+.upload-dropzone .upload-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* 제품 상세 — 뱃지(건강기능식품 칩) + 제품명을 한 줄에 나란히(플렉스박스) */
+.product-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 제품 상세 — 이미지 박스. 이미지가 없어도 사선 패턴 플레이스홀더로 항상 자리를 채움 */
+.product-image-box {
+  width: 130px;
+  aspect-ratio: 1 / 1;
+  margin: 1rem auto 0.25rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(45deg, #eef3f1, #eef3f1 10px, #e3ebe7 10px, #e3ebe7 20px);
+}
+
+.product-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-image-fallback {
+  background: #fff;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(20, 50, 40, 0.1);
+  text-align: center;
+}
+
+/* 제품 상세 — 식약처 인정 기능성 강조 박스 */
+.fnclty-callout {
+  margin-top: 0.85rem;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+}
+
+.fnclty-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+  margin: 0 0 0.3rem;
+}
+
+.fnclty-text {
+  font-size: 0.9rem;
+  color: var(--text-h);
+  white-space: pre-line;
+}
+
+/* 제품 상세 — 섹션 구분선 + 타이틀 */
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1.25rem 0;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  color: var(--text-h);
+  margin: 0 0 0.5rem;
+}
+
+/* 제품 상세 — 나머지 필드를 라벨/값 한 줄씩 나열하는 정보 목록 */
+.info-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+/* 제품 상세 — 섹션 타이틀 + 우측 보조 액션(개념설명 토글 등)을 한 줄에 */
+.ingredient-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+}
+
+/* 제품 상세 — 원재료 칩 목록 "더보기" 버튼 */
+.chip-more {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--brand-strong);
+}
+
+/* 제품 상세 — 통계 칩 행 (등급별/분류별 개수 공용, 화해 앱 "성분 구성" 참고) */
+.stat-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stat-chip strong {
+  font-weight: 700;
+}
+
+.stat-chip--total {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+/* 분류 칩 전용 — 등급 칩과 달리 아이콘이 없어 색 점(dot)으로 구분 표시 */
+.stat-chip-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* 제품 상세 — 확인이 필요한 성분 패널 (유형별 줄 목록, 화해 앱 "20가지 주의성분" 참고) */
+.warning-panel {
+  margin-top: 1rem;
+  border: 1px solid #ffccc7;
+  background: #fff2f0;
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+}
+
+.warning-panel-title {
+  color: #cf1322;
+  font-size: 0.9rem;
+}
+
+.warning-row-list {
+  margin-top: 0.65rem;
+}
+
+.warning-row {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #ffd8d3;
+}
+
+.warning-row:last-child {
+  border-bottom: none;
+}
+
+.warning-row-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.warning-row-icon {
+  font-size: 0.9rem;
+}
+
+.warning-row-label {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.warning-row-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #cf1322;
+}
+
+.warning-row-count--free {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.warning-row-detail {
+  margin-top: 0.4rem;
+  padding-left: 1.55rem; /* 아이콘 폭만큼 들여쓰기 */
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.warning-row-detail p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+/* 안내 배너 (주황 계열 — 건강보조식품 fallback 안내 등에 사용) */
+.banner-warn {
+  border: 1px solid #ffd591;
+  background: #fff7e6;
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+  color: #ad6800;
+}
