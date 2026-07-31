@@ -638,9 +638,20 @@ li.card:hover {
 }
 
 .warning-row-head {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.warning-row-head:disabled {
+  cursor: default;
 }
 
 .warning-row-icon {
@@ -665,6 +676,16 @@ li.card:hover {
   font-weight: 500;
 }
 
+.warning-row-caret {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.warning-row-caret--open {
+  transform: rotate(180deg);
+}
+
 .warning-row-detail {
   margin-top: 0.4rem;
   padding-left: 1.55rem; /* 아이콘 폭만큼 들여쓰기 */
@@ -677,6 +698,12 @@ li.card:hover {
   margin: 0;
   font-size: 0.82rem;
   color: var(--text);
+}
+
+.warning-row-source {
+  color: var(--text-muted) !important;
+  font-size: 0.78rem !important;
+  margin-bottom: 0.15rem !important;
 }
 
 /* 안내 배너 (주황 계열 — 건강보조식품 fallback 안내 등에 사용) */

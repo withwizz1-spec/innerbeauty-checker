@@ -42,6 +42,13 @@ export async function getProductDetail(reportNo) {
   return fetchJson('/api/detail', { report_no: reportNo });
 }
 
+// 이미지가 없는 제품(주로 C003)을 네이버쇼핑 검색으로 보강. 실패해도 백엔드가 항상
+// { image_url: null }로 응답하므로 여기서는 별도 에러 처리를 하지 않음
+export async function getProductImage(query) {
+  const data = await fetchJson('/api/product-image', { query });
+  return data.image_url;
+}
+
 // --- 건강보조식품 fallback 검색 ---
 // C003(건강기능식품)에서 못 찾은 제품을 다른 공공 데이터에서 찾고,
 // 결과를 C003 필드 형태(PRDLST_NM 등)로 정규화해 기존 화면 컴포넌트를 그대로 재사용

@@ -1,15 +1,18 @@
 import { GRADE_LABEL, GRADE_ICON, GRADE_COLOR, GRADE_ORDER } from '../data/ingredientGrade'
 
-// 성분 등급(경고/안전/미확인) 분포 — 칩 행(전체+등급별 개수) 아래 색상 바로 비율 표시
-// (화해 앱 "성분 구성" 화면의 칩+바 조합을 참고해 우리 3단계 등급에 맞게 구성)
+// 성분 등급(경고/안전) 분포 — 칩 행(전체+등급별 개수) 아래 색상 바로 비율 표시
+// (화해 앱 "성분 구성" 화면의 칩+바 조합을 참고해 우리 등급에 맞게 구성)
+// 미확인은 "판정 불가"일 뿐 위험 신호가 아니라 분포에서는 제외(경고/주의성분 확인 목적과 무관) — IngredientWarnings에서 별도로 다룸
+const VISIBLE_GRADES = GRADE_ORDER.filter((g) => g !== 'unknown')
+
 function IngredientGradeBar({ ingredients }) {
   const total = ingredients.length
   if (total === 0) return null
 
   const counts = Object.fromEntries(
-    GRADE_ORDER.map((g) => [g, ingredients.filter((i) => i.grade === g).length])
+    VISIBLE_GRADES.map((g) => [g, ingredients.filter((i) => i.grade === g).length])
   )
-  const segments = GRADE_ORDER.filter((g) => counts[g] > 0)
+  const segments = VISIBLE_GRADES.filter((g) => counts[g] > 0)
 
   return (
     <div style={{ marginTop: '1rem' }}>
@@ -21,7 +24,7 @@ function IngredientGradeBar({ ingredients }) {
         <span className="stat-chip stat-chip--total">
           전체 <strong>{total}개</strong>
         </span>
-        {GRADE_ORDER.map((g) => (
+        {VISIBLE_GRADES.map((g) => (
           <span
             key={g}
             className="stat-chip"

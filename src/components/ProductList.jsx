@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useNaverImage } from '../hooks/useNaverImage'
 
-// 제품 썸네일 — 이미지 URL이 있으면 표시하고, 로드 실패 시 플레이스홀더로 대체.
-// 현재 이미지를 제공하는 소스는 HACCP(IMAGE_URL)뿐이라 대부분은 플레이스홀더가 뜸.
-function ProductThumb({ src, size = 56 }) {
+// 제품 썸네일 — IMAGE_URL(HACCP 공식 이미지)이 있으면 우선 표시.
+// 없으면(대부분의 C003 결과) 네이버쇼핑 검색으로 보강한 이미지를 대신 씀.
+function ProductThumb({ src, query, size = 56 }) {
   const [failed, setFailed] = useState(false)
+  const naverSrc = useNaverImage(src ? null : query)
+  const resolvedSrc = src || naverSrc
   const box = {
     width: size,
     height: size,
@@ -13,7 +16,7 @@ function ProductThumb({ src, size = 56 }) {
     background: 'linear-gradient(135deg, #ffe29f, #ffa99f)',
   }
 
-  if (!src || failed) {
+  if (!resolvedSrc || failed) {
     return (
       <div
         style={{
@@ -29,7 +32,7 @@ function ProductThumb({ src, size = 56 }) {
     )
   }
 
-  return <img src={src} alt="" style={box} onError={() => setFailed(true)} />
+  return <img src={resolvedSrc} alt="" style={box} onError={() => setFailed(true)} />
 }
 
 function ProductList({ products, onSelect }) {
@@ -48,7 +51,7 @@ function ProductList({ products, onSelect }) {
             cursor: 'pointer',
           }}
         >
-          <ProductThumb src={p.IMAGE_URL} />
+          <ProductThumb src={p.IMAGE_URL} query={`${p.PRDLST_NM ?? ''} ${p.BSSH_NM ?? ''}`.trim()} />
           <div style={{ minWidth: 0 }}>
             <strong style={{ color: 'var(--text-h)' }}>{p.PRDLST_NM}</strong>
             {p._source && (

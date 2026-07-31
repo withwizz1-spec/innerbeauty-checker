@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNaverImage } from '../hooks/useNaverImage'
 import { parseIngredients } from '../utils/parseIngredients'
 import { CATEGORY_LABEL, CATEGORY_COLOR } from '../data/ingredientCategory'
 import { GRADE_ICON } from '../data/ingredientGrade'
@@ -138,14 +139,17 @@ function IngredientList({ rawmtrlNm, primaryFnclty, modeWarnings, myAllergies, i
   )
 }
 
-// 상세 페이지 제품 이미지 — 이미지가 없거나 로드 실패해도 박스 자체는 항상 보여줌(플레이스홀더)
-function ProductImage({ src }) {
+// 상세 페이지 제품 이미지 — IMAGE_URL(HACCP 공식 이미지)이 없으면 네이버쇼핑으로 보강.
+// 그래도 없거나 로드 실패하면 박스 자체는 항상 보여줌(플레이스홀더)
+function ProductImage({ src, query }) {
   const [failed, setFailed] = useState(false)
-  const showPlaceholder = !src || failed
+  const naverSrc = useNaverImage(src ? null : query)
+  const resolvedSrc = src || naverSrc
+  const showPlaceholder = !resolvedSrc || failed
 
   return (
     <div className="product-image-box">
-      {!showPlaceholder && <img src={src} alt="" onError={() => setFailed(true)} />}
+      {!showPlaceholder && <img src={resolvedSrc} alt="" onError={() => setFailed(true)} />}
       {showPlaceholder && <span className="product-image-fallback">🖼️ 제품 이미지</span>}
     </div>
   )
@@ -184,7 +188,10 @@ function ProductDetail({ product, modeWarnings = {}, myAllergies = [], interacti
           </div>
         )}
 
-        <ProductImage src={product.IMAGE_URL} />
+        <ProductImage
+          src={product.IMAGE_URL}
+          query={`${product.PRDLST_NM ?? ''} ${product.BSSH_NM ?? ''}`.trim()}
+        />
 
         <div className="section-divider" />
 
