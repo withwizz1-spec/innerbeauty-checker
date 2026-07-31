@@ -1,20 +1,34 @@
 import json
-import sqlite3
+import os
 import time
-from pathlib import Path
+from contextlib import contextmanager
 
-# SQLite는 서버 프로그램이 아니라 파일 하나 — 이 폴더 안에 cache.db 파일이 생김
-DB_PATH = Path(__file__).parent / "cache.db"
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.environ["DATABASE_URL"]
 CACHE_TTL_SECONDS = 3600  # 캐시 유효 시간 1시간
 
 
+@contextmanager
 def get_connection():
-    return sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS search_cache (
                 keyword TEXT NOT NULL,
@@ -31,13 +45,15 @@ def init_db():
 # 캐시에 저장된 검색 결과를 가져옴. 없거나 오래됐으면(TTL 초과) None 반환
 def get_cached_search(keyword, start_idx, end_idx):
     with get_connection() as conn:
-        row = conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             SELECT response_json, cached_at FROM search_cache
-            WHERE keyword = ? AND start_idx = ? AND end_idx = ?
+            WHERE keyword = %s AND start_idx = %s AND end_idx = %s
             """,
             (keyword, start_idx, end_idx),
-        ).fetchone()
+        )
+        row = cur.fetchone()
 
     if row is None:
         return None
@@ -53,8 +69,9 @@ def get_cached_search(keyword, start_idx, end_idx):
 # cache.db 파일이 줄어들지 않고 계속 커지기만 함
 def _delete_expired():
     with get_connection() as conn:
-        conn.execute(
-            "DELETE FROM search_cache WHERE cached_at < ?",
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM search_cache WHERE cached_at < %s",
             (time.time() - CACHE_TTL_SECONDS,),
         )
 
@@ -63,10 +80,11 @@ def _delete_expired():
 def set_cached_search(keyword, start_idx, end_idx, data):
     _delete_expired()
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             INSERT INTO search_cache (keyword, start_idx, end_idx, response_json, cached_at)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (keyword, start_idx, end_idx)
             DO UPDATE SET response_json = excluded.response_json, cached_at = excluded.cached_at
             """,

@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import httpx
@@ -21,6 +22,7 @@ from db import init_db
 from ingredients import add_report, get_all_categories, init_ingredients_db
 from interactions import get_all_interactions, init_interactions_db
 from mode_warnings import get_mode_warnings, init_mode_warnings_db
+from naver import search_product_image
 from scheduler import get_sync_history, init_sync_log_db, start_scheduler, stop_scheduler
 from search_service import (
     API_KEY,
@@ -55,12 +57,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 로컬 개발 중인 프론트엔드(Vite)에서의 요청만 허용.
+# 로컬 개발 중인 프론트엔드(Vite)에서의 요청은 allow_origin_regex로, 배포된 Vercel 프론트는
+# allow_origins(FRONTEND_URL)로 각각 허용. CORSMiddleware는 둘 중 하나라도 만족하면 통과시킴.
 # 포트를 고정하지 않는 이유: 5173이 이미 사용 중이면 Vite가 5174, 5175...로 자동으로 옮겨가는데,
 # 그때마다 여기 포트를 맞춰줘야 했던 문제가 있었음(회원가입 등 모든 API가 CORS로 막힘)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"http://localhost:\d+",
+    allow_origins=[os.environ.get("FRONTEND_URL", "")],
     allow_methods=["GET", "POST", "PUT"],
     allow_headers=["*"],
 )
@@ -102,6 +106,13 @@ async def search_imported(keyword: str, page_no: int = 1, num_of_rows: int = 10)
 async def search_general(keyword: str, start_idx: int = 1, end_idx: int = 10):
     """식품안전나라 C002(품목제조보고) 서비스를 프록시 호출합니다. C003과 동일하게 1시간 캐싱됩니다."""
     return await search_products(keyword, start_idx, end_idx, service_id=GENERAL_SERVICE_ID)
+
+
+@app.get("/api/product-image", tags=["검색"], summary="네이버쇼핑에서 제품 이미지 조회")
+async def product_image(query: str):
+    """C003 등 이미지 소스가 없는 제품을 네이버쇼핑 검색으로 보강합니다.
+    실패해도 500을 내지 않고 항상 200 + {"image_url": null}로 응답합니다."""
+    return await search_product_image(query)
 
 
 @app.get("/api/detail", tags=["검색"], summary="신고번호로 제품 상세 조회")

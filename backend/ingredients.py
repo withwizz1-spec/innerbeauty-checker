@@ -29,7 +29,8 @@ ADDITIVE_INGREDIENTS = [
 
 def init_ingredients_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS ingredients (
                 name TEXT PRIMARY KEY,
@@ -37,10 +38,10 @@ def init_ingredients_db():
             )
             """
         )
-        conn.execute(
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS ingredient_reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 suggested_category TEXT NOT NULL,
                 reason TEXT,
@@ -50,24 +51,28 @@ def init_ingredients_db():
         )
 
         # 테이블이 비어있을 때만 초기 사전 데이터로 시드
-        count = conn.execute("SELECT COUNT(*) FROM ingredients").fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM ingredients")
+        count = cur.fetchone()[0]
         if count == 0:
             rows = [(name, "functional") for name in FUNCTIONAL_INGREDIENTS]
             rows += [(name, "additive") for name in ADDITIVE_INGREDIENTS]
-            conn.executemany("INSERT INTO ingredients (name, category) VALUES (?, ?)", rows)
+            cur.executemany("INSERT INTO ingredients (name, category) VALUES (%s, %s)", rows)
 
 
 # 성분명 → 분류 전체 사전을 dict로 반환 (프론트엔드가 한 번에 받아서 캐싱해서 씀)
 def get_all_categories() -> dict:
     with get_connection() as conn:
-        rows = conn.execute("SELECT name, category FROM ingredients").fetchall()
+        cur = conn.cursor()
+        cur.execute("SELECT name, category FROM ingredients")
+        rows = cur.fetchall()
     return dict(rows)
 
 
 # 오분류 신고 저장 (자동 반영은 안 하고, 나중에 검토용으로 쌓아둠)
 def add_report(name: str, suggested_category: str, reason: str | None):
     with get_connection() as conn:
-        conn.execute(
-            "INSERT INTO ingredient_reports (name, suggested_category, reason, reported_at) VALUES (?, ?, ?, ?)",
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO ingredient_reports (name, suggested_category, reason, reported_at) VALUES (%s, %s, %s, %s)",
             (name, suggested_category, reason, time.time()),
         )

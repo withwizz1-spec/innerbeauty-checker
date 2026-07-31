@@ -1,6 +1,5 @@
 import json
 import os
-import sqlite3
 import time
 
 import bcrypt
@@ -20,17 +19,18 @@ VALID_HEALTH_MODES = ("none", "pregnant", "elderly") # 임산부/노인 모드 �
 
 def init_auth_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 created_at REAL NOT NULL
             )
             """
         )
-        conn.execute(
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id INTEGER PRIMARY KEY REFERENCES users(id),
@@ -39,11 +39,6 @@ def init_auth_db():
             )
             """
         )
-        try:
-            # 기존에 만들어진 DB 파일에는 위 CREATE TABLE이 적용 안 되므로 컬럼을 직접 추가
-            conn.execute("ALTER TABLE user_settings ADD COLUMN allergies TEXT NOT NULL DEFAULT '[]'")
-        except sqlite3.OperationalError:
-            pass  # 이미 컬럼이 있는 경우(새로 만든 DB)
 
 
 class AuthError(Exception):
@@ -52,23 +47,27 @@ class AuthError(Exception):
 
 def create_user(email: str, password: str) -> int:
     with get_connection() as conn:
-        existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        existing = cur.fetchone()
         if existing is not None:
             raise AuthError("이미 가입된 이메일이에요")
 
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        cursor = conn.execute(
-            "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+        cur.execute(
+            "INSERT INTO users (email, password_hash, created_at) VALUES (%s, %s, %s) RETURNING id",
             (email, password_hash, time.time()),
         )
-        user_id = cursor.lastrowid
-        conn.execute("INSERT INTO user_settings (user_id, health_mode) VALUES (?, 'none')", (user_id,))
+        user_id = cur.fetchone()[0]
+        cur.execute("INSERT INTO user_settings (user_id, health_mode) VALUES (%s, 'none')", (user_id,))
         return user_id
 
 
 def verify_login(email: str, password: str) -> int:
     with get_connection() as conn:
-        row = conn.execute("SELECT id, password_hash FROM users WHERE email = ?", (email,)).fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
 
     if row is None:
         raise AuthError("이메일 또는 비밀번호가 올바르지 않아요")
@@ -96,10 +95,13 @@ def verify_token(token: str) -> int:
 
 def get_user_info(user_id: int) -> dict:
     with get_connection() as conn:
-        user_row = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-        settings_row = conn.execute(
-            "SELECT health_mode, allergies FROM user_settings WHERE user_id = ?", (user_id,)
-        ).fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        user_row = cur.fetchone()
+        cur.execute(
+            "SELECT health_mode, allergies FROM user_settings WHERE user_id = %s", (user_id,)
+        )
+        settings_row = cur.fetchone()
 
     return {
         "email": user_row[0],
@@ -113,9 +115,10 @@ def set_health_mode(user_id: int, health_mode: str):
         raise AuthError(f"알 수 없는 모드예요: {health_mode}")
 
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
-            INSERT INTO user_settings (user_id, health_mode) VALUES (?, ?)
+            INSERT INTO user_settings (user_id, health_mode) VALUES (%s, %s)
             ON CONFLICT (user_id) DO UPDATE SET health_mode = excluded.health_mode
             """,
             (user_id, health_mode),
@@ -125,9 +128,10 @@ def set_health_mode(user_id: int, health_mode: str):
 # allergies: allergens.js의 ALLERGENS 라벨(예: "우유", "대두") 목록
 def set_allergies(user_id: int, allergies: list[str]):
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
-            INSERT INTO user_settings (user_id, allergies) VALUES (?, ?)
+            INSERT INTO user_settings (user_id, allergies) VALUES (%s, %s)
             ON CONFLICT (user_id) DO UPDATE SET allergies = excluded.allergies
             """,
             (user_id, json.dumps(allergies)),

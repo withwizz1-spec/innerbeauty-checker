@@ -17,7 +17,8 @@ MODE_WARNINGS = {
 
 def init_mode_warnings_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS mode_warnings (
                 mode TEXT NOT NULL,
@@ -28,22 +29,25 @@ def init_mode_warnings_db():
             """
         )
 
-        count = conn.execute("SELECT COUNT(*) FROM mode_warnings").fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM mode_warnings")
+        count = cur.fetchone()[0]
         if count == 0:
             rows = [
                 (mode, name, reason)
                 for mode, entries in MODE_WARNINGS.items()
                 for name, reason in entries
             ]
-            conn.executemany(
-                "INSERT INTO mode_warnings (mode, ingredient_name, reason) VALUES (?, ?, ?)", rows
+            cur.executemany(
+                "INSERT INTO mode_warnings (mode, ingredient_name, reason) VALUES (%s, %s, %s)", rows
             )
 
 
 # 특정 모드의 주의 성분 사전을 { 성분명: 이유 } dict로 반환
 def get_mode_warnings(mode: str) -> dict:
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT ingredient_name, reason FROM mode_warnings WHERE mode = ?", (mode,)
-        ).fetchall()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ingredient_name, reason FROM mode_warnings WHERE mode = %s", (mode,)
+        )
+        rows = cur.fetchall()
     return dict(rows)

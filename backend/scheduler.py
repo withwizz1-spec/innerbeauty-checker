@@ -14,10 +14,11 @@ scheduler = AsyncIOScheduler()
 
 def init_sync_log_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS sync_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 ran_at REAL NOT NULL,
                 success_count INTEGER NOT NULL,
                 fail_count INTEGER NOT NULL
@@ -40,8 +41,9 @@ async def sync_popular_keywords():
             fail_count += 1
 
     with get_connection() as conn:
-        conn.execute(
-            "INSERT INTO sync_log (ran_at, success_count, fail_count) VALUES (?, ?, ?)",
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO sync_log (ran_at, success_count, fail_count) VALUES (%s, %s, %s)",
             (time.time(), success_count, fail_count),
         )
 
@@ -49,10 +51,12 @@ async def sync_popular_keywords():
 # 최근 동기화 실행 기록 조회 (최신순)
 def get_sync_history(limit: int = 10) -> list[dict]:
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT ran_at, success_count, fail_count FROM sync_log ORDER BY ran_at DESC LIMIT ?",
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ran_at, success_count, fail_count FROM sync_log ORDER BY ran_at DESC LIMIT %s",
             (limit,),
-        ).fetchall()
+        )
+        rows = cur.fetchall()
     return [{"ran_at": ran_at, "success_count": s, "fail_count": f} for ran_at, s, f in rows]
 
 

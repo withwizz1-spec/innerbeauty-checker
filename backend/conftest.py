@@ -1,18 +1,18 @@
 import os
-from pathlib import Path
 
 # main.py가 import 시점에 API_KEY/AUTH_SECRET_KEY를 바로 읽으므로, 실제 .env보다 먼저
 # 테스트용 값을 넣어둠 (외부 API 키가 없어도 테스트가 돌아가야 함)
 os.environ.setdefault("FOOD_SAFETY_API_KEY", "test-key")
 os.environ.setdefault("DATA_GO_KR_API_KEY", "test-key")
 os.environ.setdefault("AUTH_SECRET_KEY", "test-secret-key-for-tests-only-32bytes-min")
+os.environ.setdefault("NAVER_CLIENT_ID", "test-naver-client-id")
+os.environ.setdefault("NAVER_CLIENT_SECRET", "test-naver-client-secret")
 
 import db
 
-# db.DB_PATH를 실제 cache.db가 아닌 테스트 전용 파일로 교체 — main import(= 테이블 생성)보다
+# db.DATABASE_URL을 innerbeauty_test DB 접속 문자열로 교체 — main import(= 테이블 생성)보다
 # 반드시 먼저 실행돼야 함
-TEST_DB_PATH = Path(__file__).parent / "test_cache.db"
-db.DB_PATH = TEST_DB_PATH
+db.DATABASE_URL = os.environ["TEST_DATABASE_URL"]
 
 import pytest
 from fastapi.testclient import TestClient
@@ -27,15 +27,11 @@ MUTABLE_TABLES = ["search_cache", "ingredient_reports", "users", "user_settings"
 @pytest.fixture(autouse=True)
 def clean_db():
     with db.get_connection() as conn:
-        for table in MUTABLE_TABLES:
-            conn.execute(f"DELETE FROM {table}")
+        cur = conn.cursor()
+        # DELETE 대신 TRUNCATE ... RESTART IDENTITY: user_settings가 users.id를 참조하므로
+        # CASCADE로 함께 비우고, SERIAL 시퀀스도 1로 되돌려 테스트마다 user_id가 안정적이게 함
+        cur.execute(f"TRUNCATE TABLE {', '.join(MUTABLE_TABLES)} RESTART IDENTITY CASCADE")
     yield
-
-
-@pytest.fixture(scope="session", autouse=True)
-def remove_test_db_file():
-    yield
-    TEST_DB_PATH.unlink(missing_ok=True)
 
 
 @pytest.fixture

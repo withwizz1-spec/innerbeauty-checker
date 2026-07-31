@@ -84,10 +84,11 @@ INTERACTIONS = [
 
 def init_interactions_db():
     with get_connection() as conn:
-        conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS interactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 type TEXT NOT NULL,
                 a_name TEXT NOT NULL,
                 a_keywords TEXT NOT NULL,
@@ -99,7 +100,8 @@ def init_interactions_db():
             """
         )
 
-        count = conn.execute("SELECT COUNT(*) FROM interactions").fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM interactions")
+        count = cur.fetchone()[0]
         if count == 0:
             rows = [
                 (
@@ -113,10 +115,10 @@ def init_interactions_db():
                 )
                 for item in INTERACTIONS
             ]
-            conn.executemany(
+            cur.executemany(
                 """
                 INSERT INTO interactions (type, a_name, a_keywords, b_name, b_keywords, description, source)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 rows,
             )
@@ -125,9 +127,11 @@ def init_interactions_db():
 # 상호작용 사전 전체를 리스트로 반환 — 프론트엔드가 앱 시작 시 한 번 받아서 캐싱해 사용
 def get_all_interactions() -> list:
     with get_connection() as conn:
-        rows = conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             "SELECT type, a_name, a_keywords, b_name, b_keywords, description, source FROM interactions"
-        ).fetchall()
+        )
+        rows = cur.fetchall()
 
     return [
         {

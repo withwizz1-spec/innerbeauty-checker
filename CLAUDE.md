@@ -163,7 +163,9 @@
     - 트러블슈팅: 첫 구현 때 식품유형 값의 접미사 불일치(`"과자류"` 키워드가 실제 값 `"과자"`에 안 걸림, `"초콜릿가공품"`이 `"준초콜릿"`에 안 걸림)로 일부 누락 → 짧은 어근 키워드로 교체. 두 번째로 값에 공백이 섞인 경우(`"유산균 음료"`)를 놓쳐 실제 검색("요하이")에서 음료 1건이 새어나간 것을 Playwright 실사용 흐름에서 발견 → 비교 전 공백 제거로 해결(알레르기·성분분류 매칭과 같은 패턴)
     - 남은 한계: "기타가공품"처럼 식품유형 자체가 무의미한 카테고리는 이름 패턴에 없는 항목이면 여전히 통과함(예: 실제 보충제였던 "리포좀 오메가3 혼합"·"오메가369건강유" 등은 의도적으로 유지) — 100% 정밀도가 아니라 "명백한 오분류" 위주로 개선
 - [x] **fallback 소스 우선순위 버그 수정 (2026-07-27)** — `searchSupplementFallback`이 `[searchGeneral(C002), searchHaccp, searchImported]` 순으로 조회해 "처음 매칭되는 소스"에서 멈추는 구조였는데, 이미지 필드는 HACCP만 갖고 있고 C002는 커버리지가 훨씬 넓어 거의 항상 먼저 매칭돼버려 HACCP(이미지 있음)까지 도달을 못 하는 버그였음. 순서를 `[searchHaccp, searchGeneral, searchImported]`로 변경. "노니"(C003 0건, C002 10건/이미지 없음, HACCP 1건/이미지 있음이 실제로 공존하는 키워드)로 Playwright 실기기 검증 완료 — 목록·상세 모두 정상 노출
-- [ ] **C003 등록 제품(대부분의 정상 검색 결과)은 이미지 소스 자체가 없음 (2026-07-27 확인)** — "홀드잇" 사용자 리포트로 발견: C003(건강기능식품 정식 등록) API 응답엔 이미지 필드가 아예 없고, 해당 제품은 HACCP에도 미등록이라 지금 연동된 4개 공공 API 어디서도 이미지를 못 가져옴. C005 바코드연계제품정보(`svc_no=C005`)를 이미지 대안으로 조사했으나 필드 11개(`PRDLST_REPORT_NO`/`PRMS_DT`/`END_DT`/`PRDLST_NM`/`POG_DAYCNT`/`PRDLST_DCNM`/`BSSH_NM`/`INDUTY_NM`/`SITE_ADDR`/`CLSBIZ_DT`/`BAR_CD`) 중 이미지 URL 없음 — 공공데이터 경로는 막다른 길로 결론. **다음 후보: 네이버 오픈API "쇼핑 검색"** — `image`/`title`/`mallName`/`lprice` 필드 제공(공식 서드파티 개방 API, 스크래핑 아님). 진행하려면 사용자가 `developers.naver.com`에서 앱 등록 후 Client ID/Secret 발급 필요(무료 티어, 호출량 제한 있음) → 다음 세션에서 가입 후 이어서 진행 예정
+- [ ] **C003 등록 제품(대부분의 정상 검색 결과)은 이미지 소스 자체가 없음 (2026-07-27 확인)** — "홀드잇" 사용자 리포트로 발견: C003(건강기능식품 정식 등록) API 응답엔 이미지 필드가 아예 없고, 해당 제품은 HACCP에도 미등록이라 지금 연동된 4개 공공 API 어디서도 이미지를 못 가져옴. C005 바코드연계제품정보(`svc_no=C005`)를 이미지 대안으로 조사했으나 필드 11개(`PRDLST_REPORT_NO`/`PRMS_DT`/`END_DT`/`PRDLST_NM`/`POG_DAYCNT`/`PRDLST_DCNM`/`BSSH_NM`/`INDUTY_NM`/`SITE_ADDR`/`CLSBIZ_DT`/`BAR_CD`) 중 이미지 URL 없음 — 공공데이터 경로는 막다른 길로 결론.
+  - **[2026-07-30 막다른 길 확인] 네이버 쇼핑 검색 API도 사용 불가.** `developers.naver.com`의 검색 오픈API가 **NAVER API HUB**(네이버클라우드플랫폼 콘솔 기반, 인증 방식도 `X-NCP-APIGW-API-KEY-ID`/`X-NCP-APIGW-API-KEY`로 변경)로 이관 중인데, 이관 대상은 블로그·뉴스·이미지·웹문서·백과사전·지식iN·카페글·지역 등 "콘텐츠 검색"뿐이고 **개별 상품명+이미지+가격을 반환하던 "쇼핑 검색"(`shop.json`)은 이관 없이 서비스 자체가 종료**됨. API HUB에 남은 "쇼핑인사이트"는 이름이 비슷하지만 트렌드/통계 API라 완전히 다른 기능 — 실제로 API HUB 신청 화면에서 "쇼핑"으로 검색해도 "쇼핑인사이트"만 뜨는 것으로 확인. `backend/naver.py`/`src/hooks/useNaverImage.js`(ProductThumb·ProductImage 연동까지 완료)는 구현은 해뒀지만 호출할 API가 없어져서 현재 미사용 상태로 보류 — 다른 이미지 소스로 교체 시 엔드포인트만 바꾸면 재사용 가능한 구조로 남겨둠.
+  - **다음 이미지 소스 후보 (미조사)**: 쿠팡파트너스/11번가 오픈API(제휴 마케팅 목적 API라 무관한 앱에 이미지만 쓰는 게 약관상 허용되는지 확인 필요 — 올리브영 크롤링을 포기했던 사유와 비슷한 리스크), Google Custom Search 이미지 검색(무료 한도 하루 100건으로 낮음). 다음 세션에서 사용자와 우선순위 상의 후 진행
 - [ ] 참고: C005 바코드연계제품정보 — 이미지 대안으로는 확인됨(위 항목), 원래 목적인 바코드 스캔 기능 확장 시엔 여전히 활용 후보
 
 ### Phase 5 — UI/UX 개선 ✅ 완료
@@ -194,11 +196,13 @@
 - [ ] 추출된 성분 자동 매핑 및 등급 판정
 - [ ] 스캔 정확도 테스트 및 보정
 
-### Phase 7 — 배포 ⬅ 다음 단계 후보 (Phase 4 잔여 이슈 정리와 택일)
-**[2026-07-22 결정] 호스팅 방향**: 프론트 Vercel/Netlify는 그대로, **백엔드는 Railway + Railway 관리형 Postgres**로 확정(SQLite에서 마이그레이션). 사용자가 "포트폴리오 어필"을 최우선 기준으로 요청해서 나온 결론 — Railway가 Postgres·백그라운드 워커(스케줄러)를 대시보드에서 바로 지원하고, "SQLite 파일 하나" 대비 "관리형 DB로 마이그레이션"하는 스토리가 어필에 더 유리하다고 판단. 아직 착수 전, Phase 7 시작 시점에 진행
+### Phase 7 — 배포 ⬅ 진행 중 (Postgres 마이그레이션 완료, 실제 배포 단계 남음)
+**[2026-07-22 결정] 호스팅 방향**: 프론트 Vercel/Netlify는 그대로, **백엔드는 Railway + Railway 관리형 Postgres**로 확정(SQLite에서 마이그레이션). 사용자가 "포트폴리오 어필"을 최우선 기준으로 요청해서 나온 결론 — Railway가 Postgres·백그라운드 워커(스케줄러)를 대시보드에서 바로 지원하고, "SQLite 파일 하나" 대비 "관리형 DB로 마이그레이션"하는 스토리가 어필에 더 유리하다고 판단.
 
-- [ ] 도메인 연결 및 Vercel/Netlify(프론트) + Railway(백엔드) 배포
-- [ ] SQLite → Postgres 마이그레이션 (연결 코드 교체 + 스키마 문법 조정)
+- [x] **SQLite → Postgres 마이그레이션 (2026-07-31 완료)** — `db.py`/`auth.py`/`ingredients.py`/`interactions.py`/`mode_warnings.py`/`scheduler.py` 전부 전환(`?`→`%s`, `conn.execute()`→커서 방식, `AUTOINCREMENT`→`SERIAL`, `lastrowid`→`RETURNING id`, `auth.py`의 `sqlite3.OperationalError` 하위호환 땜빵 삭제). `db.py`의 `get_connection()`을 `@contextmanager`로 재작성(성공 시 commit/예외 시 rollback/항상 close). 로컬 개발도 SQLite 대신 Railway Postgres의 `innerbeauty_dev` DB를 그대로 사용(운영과 이원화하지 않음, 드리프트 방지), 테스트는 `innerbeauty_test`로 분리(`conftest.py`가 `TEST_DATABASE_URL`로 교체 + `TRUNCATE ... RESTART IDENTITY CASCADE`로 SERIAL 시퀀스까지 리셋). pytest 31개 전체 통과 + 회원가입·로그인·개인화 설정 저장(ON CONFLICT upsert)·스케줄러까지 실서버로 검증 완료. 참고: 매 쿼리마다 새 커넥션을 여는 방식(풀링 없음)이라 네트워크 왕복 때문에 SQLite 대비 확연히 느려짐(pytest 31개에 347초) — 포트폴리오 스케일에선 감수하는 의도된 단순화
+- [x] `backend/Procfile`(`web: uvicorn main:app --host 0.0.0.0 --port $PORT`) 작성, `main.py` CORS에 `allow_origins=[FRONTEND_URL]` 추가(기존 로컬 `allow_origin_regex`와 병행)
+- [ ] GitHub 저장소 생성 + push, Railway 백엔드 서비스 생성(Root Directory를 `backend/`로 지정 필수) + 환경변수 등록, Vercel 프론트 배포(`VITE_BACKEND_URL`/`VITE_MOCK_DATA=false`), 배포 후 `FRONTEND_URL` 환경변수로 CORS 연결
+- [ ] 최종 스모크 테스트 (Railway `/docs`, Vercel URL에서 실사용 흐름 전체, CORS 에러 없는지, 스케줄러 1시간 잡 정상 실행)
 - [ ] 성능 최적화 및 에러 핸들링
 - [ ] 포트폴리오 정리
 
