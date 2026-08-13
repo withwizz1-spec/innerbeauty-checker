@@ -11,10 +11,26 @@ load_dotenv()
 DATABASE_URL = os.environ["DATABASE_URL"]
 CACHE_TTL_SECONDS = 3600  # 캐시 유효 시간 1시간
 
+# 아래 세 가지 한계값이 없으면 죽은 DB 연결 하나가 서버 전체를 멈춰버림.
+# 실제로 2026-08-12에 Railway Postgres와의 연결이 half-open 상태로 남아
+# 모든 API가 무응답이 된 적 있음 (동기 DB 호출이 async 이벤트 루프를 붙잡기 때문)
+CONNECT_TIMEOUT_SECONDS = 10  # 연결 수립까지 기다릴 최대 시간
+STATEMENT_TIMEOUT_MS = 15000  # 쿼리 하나가 붙잡을 수 있는 최대 시간
+
 
 @contextmanager
 def get_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        connect_timeout=CONNECT_TIMEOUT_SECONDS,
+        # TCP keepalive — 상대가 조용히 사라진 연결(half-open)을 OS가 감지해 끊어줌.
+        # 30초 무응답 시 확인 시작, 10초 간격으로 3번 실패하면 연결 종료
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=3,
+        options=f"-c statement_timeout={STATEMENT_TIMEOUT_MS}",
+    )
     try:
         yield conn
         conn.commit()

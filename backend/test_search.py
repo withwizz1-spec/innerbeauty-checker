@@ -1,3 +1,4 @@
+import urllib.parse
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -89,6 +90,89 @@ def test_search_timeout_returns_504(client):
     with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))):
         res = client.get("/api/search?keyword=타임아웃테스트")
         assert res.status_code == 504
+
+
+# --- 검색어 분해 재시도 ---
+# 식약처는 제품명을 통째로 대조해서 "이너랩 홀드잇"처럼 브랜드+제품명을 붙여 넣으면 0건이 남.
+# 0건일 때 단어별로 쪼개 다시 조회하는지 검증
+def _body(total, rows):
+    return {"C003": {"total_count": str(total), "RESULT": {"CODE": "INFO-000", "MSG": "정상"}, "row": rows}}
+
+
+EMPTY_BODY = {"C003": {"total_count": "0", "RESULT": {"CODE": "INFO-000", "MSG": "정상"}}}
+
+
+def test_search_falls_back_to_tokens_when_no_result(client):
+    responses = {
+        "이너랩 홀드잇": EMPTY_BODY,  # 전체 검색어로는 0건
+        "이너랩": _body(1, [{"PRDLST_NM": "이너랩 신바이오틱스", "PRDLST_REPORT_NO": "A1"}]),
+        "홀드잇": _body(1, [{"PRDLST_NM": "홀드잇 MAD 매드", "PRDLST_REPORT_NO": "B2"}]),
+    }
+
+    async def fake_get(self, url, *args, **kwargs):
+        keyword = urllib.parse.unquote(url.split("PRDLST_NM=")[1])
+        return FakeResponse(responses[keyword])
+
+    with patch("httpx.AsyncClient.get", new=fake_get):
+        res = client.get("/api/search?keyword=이너랩 홀드잇")
+        assert res.status_code == 200
+        names = [p["PRDLST_NM"] for p in res.json()["products"]]
+        assert names == ["이너랩 신바이오틱스", "홀드잇 MAD 매드"]
+        assert res.json()["totalCount"] == 2
+
+
+# 실제 데이터와 같은 상황: 흔한 브랜드명(이너랩 6건)과 희귀한 제품명(홀드잇 2건)이 섞였을 때
+# 걸린 건수가 적은 쪽 = 그 검색을 특징짓는 단어이므로, 홀드잇 제품이 위로 와야 함
+def test_search_ranks_rare_token_matches_first(client):
+    responses = {
+        "이너랩 홀드잇": EMPTY_BODY,
+        "이너랩": _body(6, [
+            {"PRDLST_NM": f"이너랩 제품{i}", "PRDLST_REPORT_NO": f"A{i}"} for i in range(1, 7)
+        ]),
+        "홀드잇": _body(2, [
+            {"PRDLST_NM": "홀드잇 MAD 매드", "PRDLST_REPORT_NO": "B1"},
+            {"PRDLST_NM": "홀드잇 JELLY 그린포켓젤리", "PRDLST_REPORT_NO": "B2"},
+        ]),
+    }
+
+    async def fake_get(self, url, *args, **kwargs):
+        keyword = urllib.parse.unquote(url.split("PRDLST_NM=")[1])
+        return FakeResponse(responses[keyword])
+
+    with patch("httpx.AsyncClient.get", new=fake_get):
+        res = client.get("/api/search?keyword=이너랩 홀드잇")
+        names = [p["PRDLST_NM"] for p in res.json()["products"]]
+        assert names[:2] == ["홀드잇 MAD 매드", "홀드잇 JELLY 그린포켓젤리"]
+        assert len(names) == 8
+
+
+# 두 토큰에 모두 걸린 제품은 점수가 합산되어 가장 위로 와야 함
+def test_search_ranks_product_matching_both_tokens_first(client):
+    both = {"PRDLST_NM": "이너랩 홀드잇 콤보", "PRDLST_REPORT_NO": "C1"}
+    responses = {
+        "이너랩 홀드잇": EMPTY_BODY,
+        "이너랩": _body(2, [both, {"PRDLST_NM": "이너랩 신바이오틱스", "PRDLST_REPORT_NO": "A1"}]),
+        "홀드잇": _body(2, [both, {"PRDLST_NM": "홀드잇 MAD 매드", "PRDLST_REPORT_NO": "B1"}]),
+    }
+
+    async def fake_get(self, url, *args, **kwargs):
+        keyword = urllib.parse.unquote(url.split("PRDLST_NM=")[1])
+        return FakeResponse(responses[keyword])
+
+    with patch("httpx.AsyncClient.get", new=fake_get):
+        res = client.get("/api/search?keyword=이너랩 홀드잇")
+        names = [p["PRDLST_NM"] for p in res.json()["products"]]
+        assert names[0] == "이너랩 홀드잇 콤보"
+        assert len(names) == 3  # 중복 제거됨
+
+
+# 단어가 하나뿐이면 쪼갤 게 없으므로 추가 호출 없이 0건 그대로 반환해야 함
+def test_search_single_token_does_not_retry(client):
+    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=FakeResponse(EMPTY_BODY))) as mock_get:
+        res = client.get("/api/search?keyword=없는제품")
+        assert res.status_code == 200
+        assert res.json()["products"] == []
+        assert mock_get.call_count == 1
 
 
 def test_search_external_error_is_not_cached(client):
