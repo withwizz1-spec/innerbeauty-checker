@@ -145,7 +145,9 @@ function LoggedInPanel({ user, onSaveSettings, onLogout }) {
       </div>
 
       <div className="card">
-        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem' }}>개인화 모드</h3>
+        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <span className="capsule-dot" />개인화 모드
+        </h3>
         <p style={{ margin: '0 0 0.9rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{HEALTH_MODE_DESC}</p>
         <div className="option-list">
           {Object.entries(HEALTH_MODE_LABEL).map(([value, label]) => {
@@ -167,7 +169,9 @@ function LoggedInPanel({ user, onSaveSettings, onLogout }) {
       </div>
 
       <div className="card">
-        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem' }}>알레르기</h3>
+        <h3 style={{ margin: '0 0 0.3rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <span className="capsule-dot" />알레르기
+        </h3>
         <p style={{ margin: '0 0 0.9rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{ALLERGY_DESC}</p>
 
         <div className="glass">

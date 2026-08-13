@@ -1,33 +1,34 @@
 /* ============================================
-   디자인 토큰 — "캡슐 팝" (민트→라임→옐로우 그라데이션 + 글래스모피즘)
+   디자인 토큰 — 홈 캡슐 랜딩과 같은 그린 + 크림 페이퍼 톤으로 통일
    색·간격·라운드를 여기 한 곳에서 정의하고 앱 전체가 공유
    (등급 상태색은 접근성 검증을 거친 값이라 ingredientGrade.js에 별도 유지)
    ============================================ */
 :root {
-  --brand: #0d9488; /* 민트그린 포인트 — 등급 '안전' 초록과 헷갈리지 않게 청록 계열 */
-  --brand-strong: #0f766e;
-  --brand-soft: #effaf6;
-  --brand-border: #bfe8db;
-  --brand-gradient: linear-gradient(135deg, #0d9488, #0aa887);
+  --brand: #2f6f52; /* 홈 캡슐 랜딩과 같은 그린 계열로 통일 — 채도를 낮춘 세이지 톤이라 등급 '안전'의 선명한 초록(#0ca30c)과는 구분됨 */
+  --brand-strong: #173c2c;
+  --brand-soft: #e4ede6;
+  --brand-border: #bfe0cd;
+  --brand-gradient: linear-gradient(135deg, #2f6f52, #173c2c);
 
   --accent-warm: #ff9a76; /* 로고·뱃지 포인트 — 비타민 젤리 느낌의 보조색 */
   --accent-yellow: #ffd166;
 
-  --bg-gradient: linear-gradient(160deg, #eafff5 0%, #d9f6d3 42%, #fff4d6 100%);
-  --surface: #ffffff; /* 카드 배경 — 그라데이션 위에 뜨는 흰 카드 */
-  --glass: rgba(255, 255, 255, 0.55); /* 검색창 등 반투명 유리 표면 */
-  --glass-border: rgba(255, 255, 255, 0.7);
+  /* 홈 캡슐 랜딩(.cg-root)의 --paper/--paper-dim과 같은 톤 — 배경도 랜딩과 이어지도록 */
+  --bg-gradient: linear-gradient(160deg, #fbfaf5 0%, #f1f0e9 100%);
+  --surface: #ffffff; /* 카드 배경 — 페이퍼 배경 위에 뜨는 흰 카드 */
   --border: #e4eae7;
 
-  --text-h: #0c2b24;
-  --text: #274a3f;
-  --text-muted: #6b8078;
+  /* 랜딩(capsule-layout-green.css)의 --ink/--ink-soft와 같은 계열로 정렬 —
+     기존 값은 브랜드가 티얼이던 시절에 고른 거라 청록 기운이 남아 nav 글자와 미묘하게 어긋났음 */
+  --text-h: #17211b; /* = 랜딩 --ink */
+  --text: #2f3a34;
+  --text-muted: #4b564f; /* = 랜딩 --ink-soft */
 
   --radius: 20px; /* 카드 */
   --radius-sm: 14px; /* 작은 박스 */
-  --shadow: 0 1px 2px rgba(20, 50, 40, 0.05), 0 10px 28px rgba(13, 148, 136, 0.1);
 
   --sans: 'Pretendard Variable', Pretendard, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
 
   font: 16px/1.55 var(--sans);
   color: var(--text);
@@ -47,8 +48,13 @@ body {
   background: var(--bg-gradient) fixed;
 }
 
-/* 본문 컬럼 — 한 줄 폭을 읽기 좋은 넓이로 제한, 작은 화면에선 꽉 채움 */
 #root {
+  min-height: 100svh;
+}
+
+/* 검색결과/상세 등 화면 전용 — 한 줄 폭을 읽기 좋은 넓이로 제한, 작은 화면에선 꽉 채움
+   (홈 화면은 캡슐 랜딩이 자체 max-width로 풀블리드 렌더링하므로 이 클래스를 쓰지 않음) */
+.app-shell {
   max-width: 760px;
   margin: 0 auto;
   min-height: 100svh;
@@ -56,7 +62,7 @@ body {
 }
 
 @media (max-width: 480px) {
-  #root {
+  .app-shell {
     padding: 1rem 0.9rem 3rem;
   }
 }
@@ -141,7 +147,7 @@ input::placeholder {
   border-color: transparent;
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 6px 18px rgba(47, 111, 82, 0.25);
 }
 
 .btn-primary:hover {
@@ -183,11 +189,11 @@ button.btn-plain:hover {
   text-decoration: underline;
 }
 
+/* 테두리 없이 그림자만 — 검색 결과 카드(.result-card)와 같은 "페이퍼 카드" 재질 */
 .card {
   background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 30px rgba(23, 33, 27, 0.08);
   padding: 1.1rem 1.2rem;
 }
 
@@ -197,21 +203,41 @@ button.btn-plain:hover {
   }
 }
 
-/* 클릭 가능한 목록 카드 — 살짝 떠오르는 hover */
-li.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(13, 148, 136, 0.16);
+/* 캡슐 모티프 점 아이콘 — 성분상세·로그인 화면 섹션 타이틀 앞에 반복되는 작은 브랜드 포인트 */
+.capsule-dot {
+  display: inline-block;
+  width: 15px;
+  height: 7px;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-/* 반투명 유리 표면 — 검색창·탭처럼 그라데이션 배경 위에 얹히는 요소 */
+.capsule-dot::before,
+.capsule-dot::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+
+.capsule-dot::before {
+  left: 0;
+  background: var(--brand-strong);
+}
+
+.capsule-dot::after {
+  right: 0;
+  background: var(--brand-border);
+}
+
+/* 탭 감싸개 — 홈 랜딩의 .cg-hero-tabs와 같은 불투명 페이퍼 트레이 (예전 글래스 재질에서 전환) */
 .glass {
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 22px;
-  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.12);
-  padding: 0.4rem;
+  background: var(--brand-soft);
+  border-radius: 999px;
+  padding: 0.25rem;
 }
 
 /* 탭(세그먼트) — 제품명 검색 / 성분표 스캔 전환 */
@@ -222,7 +248,7 @@ li.card:hover {
   background: none;
   border: none;
   border-radius: 999px;
-  padding: 0.15rem;
+  padding: 0;
 }
 
 .segment button {
@@ -236,82 +262,202 @@ li.card:hover {
 }
 
 .segment button.active {
-  background: var(--brand);
+  background: var(--brand-strong);
   color: #fff;
   font-weight: 600;
 }
 
-/* 검색창 — 인풋+버튼을 하나의 알약 안에 담는 글래스 서치바 */
-.search-bar {
-  display: flex;
-  gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.75);
-  border-radius: 999px;
-  padding: 0.3rem 0.3rem 0.3rem 1rem;
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.14);
-}
-
-.search-bar input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  min-height: 40px;
-  padding: 0.5rem 0;
-}
-
-.search-bar input:focus-visible {
-  outline: none;
-}
-
-.search-bar button {
-  flex-shrink: 0;
-}
-
-/* 상단 고정 헤더 — 화면(홈/결과/상세/성분상세/로그인) 전환 시에도 유지되는 뒤로가기·타이틀 바 */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+/* 화면 라벨 줄 — 공용 nav 아래에 오는 ← 뒤로가기 + 화면 이름
+   랜딩의 섹션 아이브로우와 같은 mono·자간이라, 큰 제목 없이도 톤이 이어짐 */
+.page-head {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1.25rem;
-  margin: -1.5rem -1.25rem 1.5rem;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--glass-border);
+  gap: 0.4rem;
+  margin-bottom: 1rem;
 }
 
-@media (max-width: 480px) {
-  .app-header {
-    margin: -1rem -0.9rem 1.25rem;
-    padding: 0.75rem 0.9rem;
-  }
-}
-
-/* 헤더 로고 아이콘 — 코랄/옐로우 그라데이션 알약 */
-.logo-pill {
+.page-back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-left: -0.3rem;
+  border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent-warm), var(--accent-yellow));
-  font-size: 1.05rem;
+  background: none;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-back:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.page-label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+/* ---------- 검색 결과 상단 문구 (굴러가는 단어) ---------- */
+.results-headline {
+  margin: 0.25rem 0 1.1rem;
+  font-size: clamp(1.25rem, 3.6vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.45;
+  color: var(--text-h);
+  text-wrap: balance;
+}
+
+/* 굴림 창 — 단어 한 줄만 보이도록 높이를 고정하고 넘치는 부분을 잘라냄.
+   가장 긴 단어(3글자)에 맞춰 폭을 고정해야 문장이 좌우로 흔들리지 않음 */
+.roll-slot {
+  display: inline-flex;
+  justify-content: center;
+  width: 3.3em;
+  height: 1.45em;
+  overflow: hidden;
+  vertical-align: bottom;
+  color: var(--brand);
+}
+
+.roll-track {
+  display: flex;
+  flex-direction: column;
+  animation: roll-words 12s infinite;
+}
+
+.roll-track > span {
+  height: 1.45em;
+  line-height: 1.45em;
+  white-space: nowrap;
+}
+
+/* 단어 6개 + 맨 끝에 첫 단어를 한 번 더 두고 -8.7em(=6칸)까지 밀어 이음매 없이 순환 */
+@keyframes roll-words {
+  0%, 10% { transform: translateY(0); }
+  14%, 26% { transform: translateY(-1.45em); }
+  30%, 43% { transform: translateY(-2.9em); }
+  47%, 59% { transform: translateY(-4.35em); }
+  63%, 76% { transform: translateY(-5.8em); }
+  80%, 92% { transform: translateY(-7.25em); }
+  96%, 100% { transform: translateY(-8.7em); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-track { animation: none; }
+}
+
+/* ---------- 결과 필터 · 정렬 ---------- */
+.result-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.filter-chip:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.filter-chip.active {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+/* 선택 상태를 색뿐 아니라 점의 밝기로도 구분 — 색각 이상 대비 */
+.filter-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.45;
   flex-shrink: 0;
 }
 
-/* 로그인 상태 요약 칩 — 헤더 우측, 누르면 계정 패널 토글 */
-.auth-trigger {
-  min-height: 36px;
-  padding: 0.35rem 0.85rem;
+.filter-chip.active .filter-dot {
+  opacity: 1;
+}
+
+.filter-chip em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.sort-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.sort-field select {
+  font-family: inherit;
+  font-size: 0.82rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid var(--glass-border);
+  color: var(--text-h);
+  padding: 0.42rem 1.9rem 0.42rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--surface);
+  /* 기본 화살표를 지우고 같은 톤의 셰브런을 직접 그림 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234b564f' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  appearance: none;
+  cursor: pointer;
+}
+
+.filter-empty {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.page-label-sep {
+  color: var(--text-muted);
+}
+
+.page-label-count {
+  font-weight: 800;
+  color: var(--text-h);
 }
 
 /* 계정 아바타 — 이메일 첫 글자를 브랜드 그라데이션 원 안에 표시 */
@@ -521,9 +667,17 @@ li.card:hover {
   margin: 1.25rem 0;
 }
 
+/* 섹션 타이틀 — 성분상세 Section 라벨과 같은 모노 아이브로우 스타일 */
 .section-title {
-  font-size: 0.95rem;
-  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-strong);
+  font-weight: 600;
   margin: 0 0 0.5rem;
 }
 
@@ -545,8 +699,11 @@ li.card:hover {
   border-bottom: none;
 }
 
+/* 라벨류는 리스트 카드의 제조사 라벨과 같은 모노 캡션 서체로 통일 */
 .info-label {
-  font-size: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -714,4 +871,154 @@ li.card:hover {
   padding: 0.8rem 1rem;
   font-size: 0.85rem;
   color: #ad6800;
+}
+
+/* ============================================
+   검색 결과 리스트 — "캡슐 페이퍼" 카드 (홈 랜딩과 같은 재질/타이포)
+   ============================================ */
+.result-card {
+  list-style: none;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(23, 33, 27, 0.08);
+  padding: 1.05rem 1.1rem;
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(23, 33, 27, 0.13);
+}
+
+/* 이미지가 있으면 위 크기 그대로 <img>로 대체 — 없을 때만 이 아이콘 박스가 보임 */
+.result-thumb-box {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-thumb-box.certified {
+  background: var(--brand-soft);
+}
+
+.result-thumb-box.supplement {
+  background: #fff1de;
+}
+
+/* 캡슐 모양 아이콘 — 홈 랜딩의 시그니처 캡슐과 같은 형태, 색만 인증구분에 따라 다름 */
+.result-thumb-icon {
+  width: 26px;
+  height: 13px;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-thumb-icon::before,
+.result-thumb-icon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+
+.result-thumb-box.certified .result-thumb-icon::before {
+  left: 0;
+  background: var(--brand-strong);
+}
+
+.result-thumb-box.certified .result-thumb-icon::after {
+  right: 0;
+  background: var(--brand-border);
+}
+
+.result-thumb-box.supplement .result-thumb-icon::before {
+  left: 0;
+  background: #ad6800;
+}
+
+.result-thumb-box.supplement .result-thumb-icon::after {
+  right: 0;
+  background: #ffd9a3;
+}
+
+.result-eyebrow-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.result-biz {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-strong);
+  font-weight: 600;
+}
+
+/* 인증구분 뱃지 — 리스트 카드와 제품 상세가 같은 외곽선 스타일을 공유 */
+.result-badge,
+.outline-badge {
+  border: 1.3px solid #ad6800;
+  color: #ad6800;
+  background: transparent;
+  font-size: 0.62rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.outline-badge.certified {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.result-title {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-h);
+}
+
+.result-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tag-chip.warning {
+  background: #fff1f0;
+  color: #d03b3b;
 }

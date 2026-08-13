@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { CATEGORY_LABEL } from '../data/ingredientCategory'
+import { CATEGORY_LABEL, CATEGORY_COLOR } from '../data/ingredientCategory'
 import { GRADE_LABEL, GRADE_ICON, GRADE_COLOR } from '../data/ingredientGrade'
 import { extractIngredientRole } from '../utils/extractIngredientRole'
 import { reportMisclassification } from '../api/ingredientApi'
 
-const CATEGORY_STYLE = {
-  functional: { background: '#e8f1fc', color: '#1c5cab' },
-  additive: { background: '#e6f7f1', color: '#128a5e' },
-  unknown: { background: '#f0f0f0', color: '#666' },
-}
+// 분류 칩 색 — 실제 브랜드 팔레트(CATEGORY_COLOR)에서 파생. 리스트/제품상세 칩과 항상 같은 색을 쓰도록
+// 하드코딩 색상표를 따로 두지 않음 (예전엔 여기만 파란색으로 따로 박혀있어서 화면마다 색이 달랐음)
+const CATEGORY_CHIP_STYLE = Object.fromEntries(
+  Object.entries(CATEGORY_COLOR).map(([cat, color]) => [cat, { background: `${color}1a`, color }])
+)
 
 const GRADE_STYLE = {
   warning: { background: GRADE_COLOR.warning, color: '#fff' },
@@ -24,7 +24,6 @@ function Badge({ label, style }) {
         fontSize: '0.75rem',
         padding: '0.2rem 0.55rem',
         borderRadius: '999px',
-        marginRight: '0.4rem',
       }}
     >
       {label}
@@ -35,7 +34,23 @@ function Badge({ label, style }) {
 function Section({ title, children }) {
   return (
     <div style={{ marginTop: '1rem' }}>
-      <h4 style={{ fontSize: '0.85rem', color: '#333', margin: '0 0 0.3rem' }}>{title}</h4>
+      <h4
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          fontFamily: 'var(--mono)',
+          fontSize: '0.68rem',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--brand-strong)',
+          fontWeight: 600,
+          margin: '0 0 0.35rem',
+        }}
+      >
+        <span className="capsule-dot" />
+        {title}
+      </h4>
       <div style={{ fontSize: '0.85rem', color: '#555' }}>{children}</div>
     </div>
   )
@@ -55,7 +70,7 @@ function MisclassificationReport({ ingredientName }) {
   }
 
   if (submitted) {
-    return <p style={{ fontSize: '0.8rem', color: '#128a5e', marginTop: '1rem' }}>신고 접수됐어요. 감사합니다!</p>
+    return <p style={{ fontSize: '0.8rem', color: 'var(--brand-strong)', marginTop: '1rem' }}>신고 접수됐어요. 감사합니다!</p>
   }
 
   if (!open) {
@@ -118,13 +133,18 @@ function IngredientDetail({ ingredient, primaryFnclty, modeWarningReason }) {
   return (
     <div style={{ marginTop: '1rem' }}>
       <div className="card">
-        <h3 style={{ margin: '0 0 0.3rem' }}>{ingredient.name}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span className="capsule-dot" />
+          <h3 style={{ margin: 0 }}>{ingredient.name}</h3>
+        </div>
         {ingredient.detail && (
-          <p style={{ margin: '0 0 0.5rem', color: '#999', fontSize: '0.85rem' }}>{ingredient.detail}</p>
+          <p style={{ margin: '0.25rem 0 0.5rem 1.4rem', color: '#999', fontSize: '0.85rem' }}>{ingredient.detail}</p>
         )}
 
-        <div>
-          <Badge label={CATEGORY_LABEL[ingredient.category]} style={CATEGORY_STYLE[ingredient.category]} />
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+          <span className="tag-chip" style={CATEGORY_CHIP_STYLE[ingredient.category]}>
+            #{CATEGORY_LABEL[ingredient.category]}
+          </span>
           <Badge
             label={`${GRADE_ICON[ingredient.grade]} ${GRADE_LABEL[ingredient.grade]}`}
             style={GRADE_STYLE[ingredient.grade]}

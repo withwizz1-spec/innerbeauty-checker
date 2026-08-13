@@ -3,24 +3,18 @@ import { searchProducts, searchSupplementFallback } from './api/foodSafetyApi'
 import { fetchIngredientCategories, fetchInteractions } from './api/ingredientApi'
 import { fetchMe, updateSettings, fetchModeWarnings } from './api/authApi'
 import { setCategoryDict } from './data/ingredientCategory'
+import AppNav from './components/AppNav'
 import Header from './components/Header'
-import ProductList from './components/ProductList'
+import ResultsView from './components/ResultsView'
+import RotatingHeadline from './components/RotatingHeadline'
 import ProductDetail from './components/ProductDetail'
 import IngredientDetail from './components/IngredientDetail'
-import ImageScanUpload from './components/ImageScanUpload'
 import AuthPanel from './components/AuthPanel'
-
-// 홈 화면 하단 안내 카드 — "이런 걸 확인할 수 있어요"
-const HOME_INFO_CARDS = [
-  { icon: '💊', text: '건강기능식품 vs 건강보조식품 구분 — 식약처 정식 인증 여부를 뱃지로 바로 확인' },
-  { icon: '✅', text: '원재료 하나하나의 등급(경고·안전·미확인)과 역할' },
-  { icon: '🔔', text: '임산부·노인 등 내 상황에 맞춘 주의 성분 하이라이트' },
-]
+import CapsuleLayoutGreen from './components/CapsuleLayoutGreen'
 
 function App() {
   // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'ingredient' | 'auth'
   const [screen, setScreen] = useState('home')
-  const [homeTab, setHomeTab] = useState('search') // 'search' | 'scan'
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -141,74 +135,59 @@ function App() {
     }
   }
 
+  // 홈 화면은 캡슐 랜딩(자체 nav 포함)을 풀블리드로 렌더링, 그 외 화면은 기존 앱쉘(760px 고정폭 + 공용 Header) 유지
+  if (screen === 'home') {
+    return (
+      <CapsuleLayoutGreen
+        keyword={keyword}
+        onKeywordChange={setKeyword}
+        onSearch={handleSearch}
+        user={user}
+        onAuthClick={() => setScreen('auth')}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
+  // 화면 라벨 옆에 붙는 부가 정보 — 검색어는 재검색 바에 이미 보이므로 개수만
+  const resultMeta =
+    screen === 'results' && results?.products.length > 0
+      ? `총 ${results.totalCount.toLocaleString()}개`
+      : null
+
   return (
-    <div>
-      <Header screen={screen} user={user} onBack={goBack} onAuthClick={() => setScreen('auth')} />
+    <>
+      <AppNav
+        user={user}
+        onAuthClick={() => setScreen('auth')}
+        onLogout={handleLogout}
+        onHome={() => setScreen('home')}
+        onCta={(e) => {
+          e.preventDefault()
+          setScreen('home')
+        }}
+      />
 
-      {screen === 'home' && (
-        <>
-          <p style={{ fontSize: '1.15rem', fontWeight: 700, marginTop: '0.2rem', lineHeight: 1.4 }}>
-            오늘 먹은 성분, 안심하고 넘어가자
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem', marginBottom: '1.25rem' }}>
-            성분을 알고 먹는 건강한 습관
-          </p>
+      <div className="app-shell">
+        {screen === 'results' && <RotatingHeadline />}
 
-          <div className="glass">
-            <div className="segment">
-              <button onClick={() => setHomeTab('search')} className={homeTab === 'search' ? 'active' : ''}>
-                제품명 검색
-              </button>
-              <button onClick={() => setHomeTab('scan')} className={homeTab === 'scan' ? 'active' : ''}>
-                성분표 스캔
-              </button>
+        {/* 결과 화면에서 홈으로 돌아가지 않고 바로 재검색 — 랜딩 히어로와 같은 검색창을 씀 */}
+        {screen === 'results' && (
+          <form className="cg-hero-search results-search cg-scope" onSubmit={handleSearch}>
+            <div className="cg-hero-search-box">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="제품명을 입력하세요"
+                aria-label="제품명 재검색"
+              />
             </div>
-          </div>
+            <button type="submit" className="cg-hero-search-btn">검색</button>
+          </form>
+        )}
 
-          {homeTab === 'scan' ? (
-            <div style={{ marginTop: '1rem' }}>
-              <ImageScanUpload />
-            </div>
-          ) : (
-            <>
-              {/* 검색창 — 고정폭 대신 flex:1로 화면 폭에 맞춰 늘어남 (반응형) */}
-              <form onSubmit={handleSearch} className="search-bar" style={{ marginTop: '1rem' }}>
-                <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="제품명 입력 (예: 비타민C)"
-                />
-                <button type="submit" className="btn-primary">
-                  검색
-                </button>
-              </form>
-
-              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 0.2rem' }}>
-                  이런 걸 확인할 수 있어요
-                </p>
-                {HOME_INFO_CARDS.map((c, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      gap: '0.6rem',
-                      alignItems: 'flex-start',
-                      padding: '0.75rem 0.9rem',
-                      background: 'var(--brand-soft)',
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.1rem' }}>{c.icon}</span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text)', lineHeight: 1.5 }}>{c.text}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </>
-      )}
+        <Header screen={screen} user={user} onBack={goBack} meta={resultMeta} />
 
       {screen === 'results' && (
         <div style={{ marginTop: '0.5rem' }}>
@@ -227,16 +206,12 @@ function App() {
                 </div>
               ) : (
                 <>
-                  {results.fallbackUsed && (
-                    <div className="banner-warn" style={{ marginBottom: '1rem' }}>
-                      건강기능식품 목록에는 없어서, 일반식품·수입식품 신고 정보에서 찾았어요.
-                      식약처 기능성 인증을 받지 않은 <strong>건강보조식품</strong>일 가능성이 높아요.
-                    </div>
-                  )}
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    '{keyword}' 검색 결과 {results.totalCount.toLocaleString()}개
-                  </p>
-                  <ProductList products={results.products} onSelect={openProduct} />
+                  {/* fallback 안내 배너는 제거 — 제품마다 붙는 '건강보조식품' 뱃지로 이미 구분됨 */}
+                  <ResultsView
+                    products={results.products}
+                    myAllergies={user?.allergies ?? []}
+                    onSelect={openProduct}
+                  />
                 </>
               )}
             </>
@@ -272,7 +247,8 @@ function App() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

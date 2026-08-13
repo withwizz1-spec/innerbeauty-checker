@@ -4,31 +4,26 @@ const SCREEN_TITLE = {
   ingredient: '성분 상세',
 }
 
-// 상단 고정 헤더 — 홈에서는 로고+타이틀+로그인 칩, 그 외 화면에서는 ← 뒤로가기 + 화면 제목
-function Header({ screen, user, onBack, onAuthClick }) {
-  if (screen === 'home') {
-    return (
-      <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
-          <span className="logo-pill">💊</span>
-          <h1 style={{ fontSize: '1.05rem', margin: 0, letterSpacing: '-0.01em' }}>InnerBeauty Checker</h1>
-        </div>
-        <button className="auth-trigger" onClick={onAuthClick} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-          {user ? `${user.email.split('@')[0]} ▾` : '로그인'}
-        </button>
-      </header>
-    )
-  }
-
+// 화면 라벨 줄 — ← 뒤로가기 + 현재 화면 이름(+ 부가 정보)
+// 랜딩의 섹션 아이브로우(.cg-section-eyebrow)와 같은 mono·자간을 써서 톤을 맞춤
+function Header({ screen, user, onBack, meta }) {
   const title = screen === 'auth' ? (user ? '내 정보' : '로그인') : SCREEN_TITLE[screen]
 
   return (
-    <header className="app-header">
-      <button onClick={onBack} className="btn-ghost" aria-label="뒤로가기" style={{ fontSize: '1.1rem', padding: '0.3rem 0.6rem' }}>
+    <div className="page-head">
+      <button onClick={onBack} className="page-back" aria-label="이전 화면으로">
         ←
       </button>
-      <h2 style={{ fontSize: '1rem', margin: 0, letterSpacing: '-0.01em' }}>{title}</h2>
-    </header>
+      <span className="page-label">
+        {title}
+        {meta && (
+          <>
+            <span className="page-label-sep"> · </span>
+            <strong className="page-label-count">{meta}</strong>
+          </>
+        )}
+      </span>
+    </div>
   )
 }
 

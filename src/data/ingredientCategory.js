@@ -66,7 +66,7 @@ export const CATEGORY_ORDER = ['functional', 'additive', 'unknown']
 // 브랜드 팔레트에 맞춘 분류색 — 미확인은 등급 시스템의 '미확인'(ingredientGrade.js GRADE_COLOR.unknown)과
 // 동일한 회색을 써서, 앱 어디서든 "미확인 = 이 회색"이 되도록 통일
 export const CATEGORY_COLOR = {
-  functional: '#0d9488', // 브랜드 민트 (--brand)
+  functional: '#2f6f52', // 브랜드 그린 (--brand)
   additive: '#ff9a76', // 웜 코랄 (--accent-warm)
   unknown: '#75808f',
 }

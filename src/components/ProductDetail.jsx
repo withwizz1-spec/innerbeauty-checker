@@ -161,24 +161,14 @@ function ProductDetail({ product, modeWarnings = {}, myAllergies = [], interacti
       <div className="card">
         {/* 뱃지 + 제품명을 플렉스박스로 한 줄에 나란히 배치 */}
         <div className="product-title-row">
-          {/* _source가 있으면 fallback(일반식품·HACCP·수입식품)에서 온 건강보조식품 */}
-          <span
-            style={{
-              display: 'inline-block',
-              flexShrink: 0,
-              background: product._source ? '#fff7e6' : '#e6f4ea',
-              color: product._source ? '#ad6800' : '#1a7f37',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              padding: '0.2rem 0.5rem',
-              borderRadius: '999px',
-            }}
-          >
+          {/* _source가 있으면 fallback(일반식품·HACCP·수입식품)에서 온 건강보조식품
+              — 리스트 카드(.result-badge)와 같은 외곽선 뱃지 스타일 */}
+          <span className={`outline-badge ${product._source ? 'supplement' : 'certified'}`}>
             {product._source ? '건강보조식품' : '건강기능식품'}
           </span>
           <h2 style={{ margin: 0, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>{product.PRDLST_NM}</h2>
         </div>
-        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{product.BSSH_NM}</p>
+        <p className="result-biz" style={{ display: 'block', marginTop: '0.35rem' }}>{product.BSSH_NM}</p>
 
         {/* 식약처가 이 제품에 대해 직접 인정한 기능성 문구 — 핵심 정보라 별도 강조 박스로 구분 */}
         {product.PRIMARY_FNCLTY && (
@@ -206,7 +196,10 @@ function ProductDetail({ product, modeWarnings = {}, myAllergies = [], interacti
 
         <div className="section-divider" />
 
-        <h3 className="section-title">제품 상세 정보</h3>
+        <h3 className="section-title">
+          <span className="capsule-dot" />
+          제품 상세 정보
+        </h3>
         <div className="info-grid">
           <InfoRow label="식품유형" value={product.PRDKIND} />
           <InfoRow label="알레르기 유발물질" value={product.ALLERGY_INFO} />
