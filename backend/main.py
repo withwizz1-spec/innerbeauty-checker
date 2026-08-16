@@ -19,6 +19,13 @@ from auth import (
 )
 from data_go_kr import search_haccp_products, search_imported_products
 from db import init_db
+from favorites import (
+    FavoriteError,
+    add_favorite,
+    init_favorites_db,
+    list_favorites,
+    remove_favorite,
+)
 from ingredients import add_report, get_all_categories, init_ingredients_db
 from interactions import get_all_interactions, init_interactions_db
 from mode_warnings import get_mode_warnings, init_mode_warnings_db
@@ -39,6 +46,7 @@ init_interactions_db()
 init_auth_db()
 init_mode_warnings_db()
 init_sync_log_db()
+init_favorites_db()
 
 
 # 서버가 실제로 요청을 받기 시작할 때(startup) 스케줄러를 켜고,
@@ -65,7 +73,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"http://localhost:\d+",
     allow_origins=[os.environ.get("FRONTEND_URL", "")],
-    allow_methods=["GET", "POST", "PUT"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # DELETE는 찜 해제에 필요
     allow_headers=["*"],
 )
 
@@ -212,6 +220,36 @@ async def update_settings(body: SettingsRequest, user_id: int = Depends(get_curr
     except AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"status": "updated"}
+
+
+class FavoriteRequest(BaseModel):
+    product: dict
+
+
+@app.get("/api/favorites", tags=["찜"], summary="찜한 제품 목록 조회")
+async def get_favorites(user_id: int = Depends(get_current_user_id)):
+    """찜한 시점의 제품 정보를 그대로 돌려줍니다(원재료명 포함). 최근에 찜한 순서입니다."""
+    return list_favorites(user_id)
+
+
+@app.post("/api/favorites", tags=["찜"], summary="제품 찜하기")
+async def post_favorite(body: FavoriteRequest, user_id: int = Depends(get_current_user_id)):
+    """제품 정보를 통째로 저장합니다. 식약처 API는 신고번호로 다시 조회할 수단이 없고
+    09~19시엔 막히기 때문에, 키만 저장하면 찜 목록을 열 수 없습니다.
+    이미 찜한 제품이면 최신 정보로 갱신합니다."""
+    try:
+        key = add_favorite(user_id, body.product)
+    except FavoriteError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"status": "added", "product_key": key}
+
+
+@app.delete("/api/favorites/{product_key:path}", tags=["찜"], summary="찜 해제")
+async def delete_favorite(product_key: str, user_id: int = Depends(get_current_user_id)):
+    """제품 키는 신고번호 또는 `제품명|업소명` 형태입니다."""
+    if not remove_favorite(user_id, product_key):
+        raise HTTPException(status_code=404, detail="찜한 제품이 아니에요")
+    return {"status": "removed"}
 
 
 # 특정 모드(임산부/노인 등)의 주의 성분 사전 — 로그인 여부와 무관하게 조회 가능한 공개 데이터

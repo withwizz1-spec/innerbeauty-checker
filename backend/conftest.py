@@ -21,7 +21,14 @@ from main import app
 
 # 사용자가 직접 만들어내는(=테스트마다 리셋해야 하는) 테이블만 초기화
 # ingredients/mode_warnings는 앱 시작 시 한 번 시드되는 참고 데이터라 그대로 둠
-MUTABLE_TABLES = ["search_cache", "ingredient_reports", "users", "user_settings", "sync_log"]
+MUTABLE_TABLES = [
+    "search_cache",
+    "ingredient_reports",
+    "users",
+    "user_settings",
+    "sync_log",
+    "favorites",
+]
 
 
 @pytest.fixture(autouse=True)

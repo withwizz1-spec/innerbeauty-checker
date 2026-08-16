@@ -87,30 +87,44 @@ def _product_key(product: dict) -> str:
     return product.get("PRDLST_REPORT_NO") or f"{product.get('PRDLST_NM')}|{product.get('BSSH_NM')}"
 
 
-# 토큰별 검색 결과를 합쳐 순위를 매김.
+# 제품명이 그 토큰으로 시작할 때 주는 가산점 — 그 토큰이 제품의 주 이름이라는 뜻
+PREFIX_BONUS = 1.0
+
+
+# 토큰별 검색 결과를 합쳐 순위를 매김. 세 가지 신호를 더해 점수를 만든다.
 #
-# 단순히 "몇 개 토큰에 걸렸나"로만 세면, 두 토큰을 다 가진 제품이 없을 때 전부 동점이 되어
-# 결국 앞 단어가 이김. "이너랩 홀드잇"에서 정작 찾던 홀드잇 제품이 이너랩 제품들 뒤로 밀렸던 이유.
+# ① 토큰 위치 (주 신호) — 뒤쪽 토큰일수록 높은 점수.
+#    한국 제품명은 "브랜드 + 제품명" 순이고 사용자도 그 순서로 검색어를 치기 때문에,
+#    뒤 단어일수록 사용자가 실제로 찾는 제품을 특정하는 이름에 가까움.
+#      "이너랩 홀드잇" → 홀드잇,  "종근당건강 락토핏" → 락토핏
 #
-# 그래서 적게 걸린 토큰일수록 높은 가중치를 줌 — 검색 결과가 적은 단어일수록
-# 그 검색을 특징짓는 단어이기 때문(검색엔진의 IDF와 같은 발상).
-#   이너랩 6건 → 가중치 1/6,  홀드잇 2건 → 가중치 1/2  ⇒ 홀드잇 제품이 위로
-def _merge_token_results(results: list[dict]) -> list[dict]:
+# ② 접두 일치 — 제품명이 그 토큰으로 시작하면 가산점.
+#    "홀드잇 MAD 매드", "락토핏 솔루션 스킨"처럼 그 토큰이 제품의 주 이름인 경우
+#
+# ③ 희소성 (보조) — 적게 걸린 토큰일수록 가산점(검색엔진의 IDF와 같은 발상).
+#    토큰이 3개 이상일 때 "골드"처럼 흔한 수식어가 맨 뒤에 와서 ①을 흔드는 것을 눌러줌.
+#    단독으로 쓰면 "락토핏 57건 < 종근당건강 19건"처럼 인기 제품군이 거꾸로 밀리므로 보조로만 씀
+def _merge_token_results(results: list[dict], tokens: list[str]) -> list[dict]:
     merged: dict[str, dict] = {}
     scores: dict[str, float] = {}
+    token_count = len(tokens)
 
-    for data in results:
+    for index, (token, data) in enumerate(zip(tokens, results)):
         products = data.get("products", [])
+        position_weight = (index + 1) / token_count
         # 실제 검색 건수(totalCount)를 희소성 기준으로 씀 — 한 페이지 개수보다 정확함
         total = data.get("totalCount") or len(products)
-        weight = 1 / max(int(total), 1)
+        rarity = 1 / max(int(total), 1)
 
         for product in products:
             key = _product_key(product)
             if key not in merged:
                 merged[key] = product
                 scores[key] = 0.0
-            scores[key] += weight
+
+            scores[key] += position_weight + rarity
+            if (product.get("PRDLST_NM") or "").lstrip().startswith(token):
+                scores[key] += PREFIX_BONUS
 
     # 점수가 같으면 원래 순서를 유지 (파이썬 sort는 안정 정렬)
     return sorted(merged.values(), key=lambda p: -scores[_product_key(p)])
@@ -133,9 +147,10 @@ async def search_products(
         *(_search_single(t, start_idx, end_idx, service_id) for t in tokens),
         return_exceptions=True,  # 한 토큰이 실패해도 나머지 결과는 살림
     )
-    succeeded = [r for r in settled if isinstance(r, dict)]
-    if not succeeded:
+    # 실패한 토큰을 걸러내되, 어느 토큰의 결과인지 짝을 유지해야 접두 일치 점수를 매길 수 있음
+    pairs = [(t, r) for t, r in zip(tokens, settled) if isinstance(r, dict)]
+    if not pairs:
         return data
 
-    products = _merge_token_results(succeeded)
+    products = _merge_token_results([r for _, r in pairs], [t for t, _ in pairs])
     return {"products": products, "totalCount": len(products)}

@@ -117,7 +117,8 @@ def test_search_falls_back_to_tokens_when_no_result(client):
         res = client.get("/api/search?keyword=이너랩 홀드잇")
         assert res.status_code == 200
         names = [p["PRDLST_NM"] for p in res.json()["products"]]
-        assert names == ["이너랩 신바이오틱스", "홀드잇 MAD 매드"]
+        # 순서는 아래 정렬 테스트들이 따로 검증 — 여기선 두 토큰 결과가 모두 합쳐졌는지만 확인
+        assert set(names) == {"이너랩 신바이오틱스", "홀드잇 MAD 매드"}
         assert res.json()["totalCount"] == 2
 
 
@@ -144,6 +145,30 @@ def test_search_ranks_rare_token_matches_first(client):
         names = [p["PRDLST_NM"] for p in res.json()["products"]]
         assert names[:2] == ["홀드잇 MAD 매드", "홀드잇 JELLY 그린포켓젤리"]
         assert len(names) == 8
+
+
+# 희소성만 쓰면 뒤집히는 경우: 락토핏(57건)이 종근당건강(19건)보다 흔한 단어로 취급돼
+# 정작 찾던 락토핏 제품이 뒤로 밀렸음. 제품명이 그 토큰으로 시작하면 가산점을 줘서 보정
+def test_search_ranks_prefix_matches_first_even_when_token_is_common(client):
+    responses = {
+        "종근당건강 락토핏": EMPTY_BODY,
+        "종근당건강": _body(19, [
+            {"PRDLST_NM": f"종근당건강 기타제품{i}", "PRDLST_REPORT_NO": f"A{i}"} for i in range(1, 4)
+        ]),
+        "락토핏": _body(57, [
+            {"PRDLST_NM": "락토핏 솔루션 스킨", "PRDLST_REPORT_NO": "B1"},
+            {"PRDLST_NM": "락토핏 생유산균 코어", "PRDLST_REPORT_NO": "B2"},
+        ]),
+    }
+
+    async def fake_get(self, url, *args, **kwargs):
+        keyword = urllib.parse.unquote(url.split("PRDLST_NM=")[1])
+        return FakeResponse(responses[keyword])
+
+    with patch("httpx.AsyncClient.get", new=fake_get):
+        res = client.get("/api/search?keyword=종근당건강 락토핏")
+        names = [p["PRDLST_NM"] for p in res.json()["products"]]
+        assert names[:2] == ["락토핏 솔루션 스킨", "락토핏 생유산균 코어"]
 
 
 # 두 토큰에 모두 걸린 제품은 점수가 합산되어 가장 위로 와야 함
