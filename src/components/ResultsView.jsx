@@ -21,7 +21,7 @@ function summarize(product, myAllergies) {
   }
 }
 
-function ResultsView({ products, myAllergies = [], onSelect }) {
+function ResultsView({ products, myAllergies = [], onSelect, favorites, onToggleFavorite }) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('relevance')
 
@@ -74,7 +74,12 @@ function ResultsView({ products, myAllergies = [], onSelect }) {
           이 조건에 맞는 제품이 없어요. 다른 필터를 눌러보세요.
         </p>
       ) : (
-        <ProductList products={visible} onSelect={onSelect} />
+        <ProductList
+          products={visible}
+          onSelect={onSelect}
+          favorites={favorites}
+          onToggleFavorite={onToggleFavorite}
+        />
       )}
     </>
   )

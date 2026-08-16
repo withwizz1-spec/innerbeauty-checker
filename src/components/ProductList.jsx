@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { parseIngredients } from '../utils/parseIngredients'
 import { GRADE_ICON } from '../data/ingredientGrade'
+import { buildProductKey } from '../utils/productKey'
+import FavoriteButton from './FavoriteButton'
 
 // 제품 썸네일 — IMAGE_URL(HACCP 공식 이미지)이 있으면 그대로 쓰고,
 // 없으면(대부분의 C003 결과) 건강기능식품/건강보조식품 여부로 색이 다른 캡슐 아이콘을 대신 보여줌
@@ -49,7 +51,7 @@ function pickHighlightIngredients(product) {
   return picked
 }
 
-function ProductList({ products, onSelect }) {
+function ProductList({ products, onSelect, favorites, onToggleFavorite }) {
   return (
     <ul style={{ listStyle: 'none', padding: 0, margin: '0.6rem 0 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {products.map((p) => {
@@ -75,6 +77,13 @@ function ProductList({ products, onSelect }) {
                 </div>
               )}
             </div>
+
+            {onToggleFavorite && (
+              <FavoriteButton
+                favorited={favorites?.has(buildProductKey(p)) ?? false}
+                onToggle={() => onToggleFavorite(p)}
+              />
+            )}
           </li>
         )
       })}

@@ -2,6 +2,7 @@ const SCREEN_TITLE = {
   results: '검색 결과',
   detail: '제품 상세',
   ingredient: '성분 상세',
+  favorites: '내 영양제 리스트',
 }
 
 // 화면 라벨 줄 — ← 뒤로가기 + 현재 화면 이름(+ 부가 정보)

@@ -8,6 +8,7 @@ import IngredientGradeBar from './IngredientGradeBar'
 import IngredientInteractions from './IngredientInteractions'
 import IngredientWarnings from './IngredientWarnings'
 import IngredientConceptInfo from './IngredientConceptInfo'
+import FavoriteButton from './FavoriteButton'
 
 // 분류별 칩 색상 — CATEGORY_COLOR(분류 바와 동일한 브랜드 색)에서 배경 10% 톤을 파생
 // 같은 분류는 어디서나(분류 바, 원재료 칩) 같은 색을 쓰도록 한 곳에서 계산
@@ -155,7 +156,15 @@ function ProductImage({ src, query }) {
   )
 }
 
-function ProductDetail({ product, modeWarnings = {}, myAllergies = [], interactions = [], onSelectIngredient }) {
+function ProductDetail({
+  product,
+  modeWarnings = {},
+  myAllergies = [],
+  interactions = [],
+  onSelectIngredient,
+  favorited = false,
+  onToggleFavorite,
+}) {
   return (
     <div style={{ marginTop: '0.5rem' }}>
       <div className="card">
@@ -167,6 +176,9 @@ function ProductDetail({ product, modeWarnings = {}, myAllergies = [], interacti
             {product._source ? '건강보조식품' : '건강기능식품'}
           </span>
           <h2 style={{ margin: 0, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>{product.PRDLST_NM}</h2>
+          {onToggleFavorite && (
+            <FavoriteButton favorited={favorited} onToggle={onToggleFavorite} size="lg" />
+          )}
         </div>
         <p className="result-biz" style={{ display: 'block', marginTop: '0.35rem' }}>{product.BSSH_NM}</p>
 

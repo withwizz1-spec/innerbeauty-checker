@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 // 상단 nav — 홈 랜딩과 검색결과/상세/성분상세/로그인 화면이 공통으로 쓰는 컴포넌트
 // (같은 마크업·CSS를 공유해야 화면 전환 시 nav가 미묘하게 달라 보이지 않음)
-function AppNav({ user, onAuthClick, onHome, onCta, onLogout }) {
+function AppNav({ user, onAuthClick, onHome, onCta, onLogout, onFavorites, favoriteCount = 0 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -52,6 +52,10 @@ function AppNav({ user, onAuthClick, onHome, onCta, onLogout }) {
 
               {menuOpen && (
                 <div className="nav-dropdown" role="menu">
+                  <button type="button" role="menuitem" onClick={() => runAndClose(onFavorites)}>
+                    내 영양제 리스트
+                    {favoriteCount > 0 && <em className="nav-count">{favoriteCount}</em>}
+                  </button>
                   <button type="button" role="menuitem" onClick={() => runAndClose(onAuthClick)}>
                     마이페이지
                   </button>

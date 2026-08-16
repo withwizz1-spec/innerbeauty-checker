@@ -1,8 +1,14 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8000';
 
 async function handleResponse(res) {
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail ?? `HTTP 오류: ${res.status}`);
+  // 502 등에서 본문이 JSON이 아닐 수 있어서 파싱 실패를 흡수
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const error = new Error(data.detail ?? `HTTP 오류: ${res.status}`);
+    // 호출부가 "토큰이 잘못됨(401)"과 "서버가 잠깐 죽음(5xx)"을 구분할 수 있도록 상태코드를 실어 보냄
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 

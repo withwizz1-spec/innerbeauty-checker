@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { searchProducts, searchSupplementFallback } from './api/foodSafetyApi'
 import { fetchIngredientCategories, fetchInteractions } from './api/ingredientApi'
 import { fetchMe, updateSettings, fetchModeWarnings } from './api/authApi'
+import { fetchFavorites, addFavorite, removeFavorite } from './api/favoritesApi'
+import { buildProductKey } from './utils/productKey'
 import { setCategoryDict } from './data/ingredientCategory'
 import AppNav from './components/AppNav'
 import Header from './components/Header'
@@ -10,10 +12,12 @@ import RotatingHeadline from './components/RotatingHeadline'
 import ProductDetail from './components/ProductDetail'
 import IngredientDetail from './components/IngredientDetail'
 import AuthPanel from './components/AuthPanel'
+import ConfirmDialog from './components/ConfirmDialog'
+import FavoritesView from './components/FavoritesView'
 import CapsuleLayoutGreen from './components/CapsuleLayoutGreen'
 
 function App() {
-  // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'ingredient' | 'auth'
+  // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'ingredient' | 'auth' | 'favorites'
   const [screen, setScreen] = useState('home')
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState(null)
@@ -26,6 +30,10 @@ function App() {
   const [user, setUser] = useState(null)
   const [modeWarnings, setModeWarnings] = useState({})
   const [interactions, setInteractions] = useState([])
+
+  // 찜한 제품 — key(제품 식별자) → 찜한 시점의 제품 정보
+  const [favorites, setFavorites] = useState(new Map())
+  const [loginPrompt, setLoginPrompt] = useState(false)
 
   // 앱 시작 시 성분 분류 사전·상호작용 사전을 백엔드에서 한 번만 받아와 캐싱
   useEffect(() => {
@@ -41,11 +49,58 @@ function App() {
     }
     fetchMe(token)
       .then(setUser)
-      .catch(() => {
+      .catch((err) => {
+        // 토큰이 실제로 무효할 때(401)만 로그아웃.
+        // 백엔드가 잠깐 죽었거나 네트워크가 끊긴 경우까지 로그아웃시키면,
+        // 새로고침 한 번에 로그인이 풀려버림
+        if (err.status !== 401) return
         localStorage.removeItem('token')
         setToken(null)
       })
   }, [token])
+
+  // 로그인 상태가 되면 찜 목록을 한 번 받아와 하트 상태를 복원 (로그아웃하면 비움)
+  useEffect(() => {
+    if (!token) {
+      setFavorites(new Map())
+      return
+    }
+    fetchFavorites(token)
+      .then((rows) => setFavorites(new Map(rows.map((r) => [r.product_key, r.product]))))
+      .catch(() => {})
+  }, [token])
+
+  // 하트 클릭 — 비로그인이면 안내 창을 띄우고, 로그인 상태면 바로 추가/해제
+  // 화면이 즉시 반응하도록 먼저 상태를 바꾸고, 서버 요청이 실패하면 되돌림
+  async function toggleFavorite(product) {
+    if (!token) {
+      setLoginPrompt(true)
+      return
+    }
+
+    const key = buildProductKey(product)
+    if (!key) return
+
+    const wasFavorited = favorites.has(key)
+    setFavorites((prev) => {
+      const next = new Map(prev)
+      if (wasFavorited) next.delete(key)
+      else next.set(key, product)
+      return next
+    })
+
+    try {
+      if (wasFavorited) await removeFavorite(token, key)
+      else await addFavorite(token, product)
+    } catch {
+      setFavorites((prev) => {
+        const next = new Map(prev)
+        if (wasFavorited) next.set(key, product)
+        else next.delete(key)
+        return next
+      })
+    }
+  }
 
   // 개인화 모드가 바뀔 때마다 그 모드의 주의 성분 사전을 받아옴
   useEffect(() => {
@@ -53,14 +108,18 @@ function App() {
   }, [user?.health_mode])
 
   // 화면별 뒤로가기 대상 — ingredient→detail→results→home
+  // 상세 화면은 검색 결과에서도, 찜 목록에서도 열리므로 어디서 왔는지 기억해뒀다가 되돌아감
+  const [detailOrigin, setDetailOrigin] = useState('results')
+
   function goBack() {
     if (screen === 'ingredient') setScreen('detail')
-    else if (screen === 'detail') setScreen('results')
+    else if (screen === 'detail') setScreen(detailOrigin)
     else setScreen('home')
   }
 
   function openProduct(product) {
     setSelectedProduct(product)
+    setDetailOrigin(screen === 'favorites' ? 'favorites' : 'results')
     setScreen('detail')
   }
 
@@ -145,6 +204,8 @@ function App() {
         user={user}
         onAuthClick={() => setScreen('auth')}
         onLogout={handleLogout}
+        onFavorites={() => setScreen('favorites')}
+        favoriteCount={favorites.size}
       />
     )
   }
@@ -161,6 +222,8 @@ function App() {
         user={user}
         onAuthClick={() => setScreen('auth')}
         onLogout={handleLogout}
+        onFavorites={() => setScreen('favorites')}
+        favoriteCount={favorites.size}
         onHome={() => setScreen('home')}
         onCta={(e) => {
           e.preventDefault()
@@ -211,6 +274,8 @@ function App() {
                     products={results.products}
                     myAllergies={user?.allergies ?? []}
                     onSelect={openProduct}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
                   />
                 </>
               )}
@@ -226,6 +291,8 @@ function App() {
           myAllergies={user?.allergies ?? []}
           interactions={interactions}
           onSelectIngredient={openIngredient}
+          favorited={favorites.has(buildProductKey(selectedProduct))}
+          onToggleFavorite={() => toggleFavorite(selectedProduct)}
         />
       )}
 
@@ -235,6 +302,17 @@ function App() {
           primaryFnclty={selectedProduct?.PRIMARY_FNCLTY}
           modeWarningReason={modeWarnings[selectedIngredient.name]}
         />
+      )}
+
+      {screen === 'favorites' && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <FavoritesView
+            favorites={favorites}
+            interactions={interactions}
+            onSelect={openProduct}
+            onToggleFavorite={toggleFavorite}
+          />
+        </div>
       )}
 
       {screen === 'auth' && (
@@ -248,6 +326,18 @@ function App() {
         </div>
       )}
       </div>
+
+      <ConfirmDialog
+        open={loginPrompt}
+        title="로그인이 필요해요"
+        message="찜한 제품은 계정에 저장돼서, 다른 기기에서도 그대로 볼 수 있어요."
+        confirmLabel="로그인하러 가기"
+        onConfirm={() => {
+          setLoginPrompt(false)
+          setScreen('auth')
+        }}
+        onCancel={() => setLoginPrompt(false)}
+      />
     </>
   )
 }

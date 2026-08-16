@@ -112,7 +112,16 @@ function useTypingSearch() {
   return text;
 }
 
-export default function CapsuleLayoutGreen({ keyword, onKeywordChange, onSearch, user, onAuthClick, onLogout }) {
+export default function CapsuleLayoutGreen({
+  keyword,
+  onKeywordChange,
+  onSearch,
+  user,
+  onAuthClick,
+  onLogout,
+  onFavorites,
+  favoriteCount,
+}) {
   const rootRef = useRevealOnScroll();
   const searchText = useTypingSearch();
   const [activeTab, setActiveTab] = useState('search'); // 'search' | 'scan'
@@ -147,6 +156,8 @@ export default function CapsuleLayoutGreen({ keyword, onKeywordChange, onSearch,
         user={user}
         onAuthClick={onAuthClick}
         onLogout={onLogout}
+        onFavorites={onFavorites}
+        favoriteCount={favoriteCount}
         onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         onCta={scrollToSearch}
       />

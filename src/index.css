@@ -306,6 +306,269 @@ button.btn-plain:hover {
   color: var(--text);
 }
 
+/* ---------- 찜 하트 버튼 ---------- */
+.favorite-btn {
+  /* inline-flex + center 정렬이 없으면 글리프가 글꼴 기준선을 따라가서
+     동그란 hover 배경 안에서 하트가 위로 치우쳐 보임 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto; /* 카드 오른쪽 끝으로 밀어냄 */
+  align-self: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.favorite-btn.md {
+  width: 42px;
+  height: 42px;
+  font-size: 1.3rem;
+}
+
+.favorite-btn.lg {
+  width: 46px;
+  height: 46px;
+  font-size: 1.5rem;
+}
+
+.favorite-btn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  transform: scale(1.08);
+}
+
+/* 찜한 상태 — 색만으로 구분되지 않도록 채워진 하트(♥)와 빈 하트(♡)를 함께 바꿈 */
+.favorite-btn.on {
+  color: #d1495b;
+}
+
+.favorite-btn.on:hover {
+  background: #f6e3e1;
+  color: #b03a32;
+}
+
+/* ---------- 찜 목록 화면 ---------- */
+.favorites-hint {
+  margin-bottom: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.favorites-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.favorite-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 8px 30px rgba(23, 33, 27, 0.08);
+}
+
+/* 기본 체크박스를 숨기고 같은 자리에 브랜드 색 네모를 그림 */
+.favorite-check {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.favorite-check input {
+  position: absolute;
+  opacity: 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.favorite-check span {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 7px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.favorite-check input:checked + span {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+}
+
+/* 체크 표시는 흰 선 두 개를 회전시켜 그림 */
+.favorite-check input:checked + span::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 10px;
+  margin: 2px auto 0;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.favorite-check input:focus-visible + span {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.favorite-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.combo-section {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.combo-empty {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.combo-note {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.combo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.combo-card {
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+}
+
+.combo-synergy {
+  border-color: #b7e1c4;
+  background: #f0faf3;
+}
+
+.combo-caution {
+  border-color: #ffd591;
+  background: #fff7e6;
+}
+
+.combo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.combo-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(23, 33, 27, 0.07);
+}
+
+.combo-pair {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.combo-desc {
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.combo-source {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.nav-count {
+  margin-left: 0.4rem;
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+/* ---------- 확인 모달 ---------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(23, 33, 27, 0.42);
+}
+
+.dialog-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.4rem 1.25rem;
+  box-shadow: 0 20px 50px rgba(23, 33, 27, 0.22);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.dialog-message {
+  margin-top: 0.55rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-btn:hover { transform: none; }
+}
+
 /* ---------- 검색 결과 상단 문구 (굴러가는 단어) ---------- */
 .results-headline {
   margin: 0.25rem 0 1.1rem;
