@@ -1,7 +1,6 @@
 const SCREEN_TITLE = {
   results: '검색 결과',
   detail: '제품 상세',
-  ingredient: '성분 상세',
   favorites: '내 영양제 리스트',
 }
 

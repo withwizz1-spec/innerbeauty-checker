@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { useNaverImage } from '../hooks/useNaverImage'
 import { parseIngredients } from '../utils/parseIngredients'
 import { CATEGORY_LABEL, CATEGORY_COLOR } from '../data/ingredientCategory'
 import { GRADE_ICON } from '../data/ingredientGrade'
-import IngredientCategoryBar from './IngredientCategoryBar'
-import IngredientGradeBar from './IngredientGradeBar'
 import IngredientInteractions from './IngredientInteractions'
 import IngredientWarnings from './IngredientWarnings'
 import IngredientConceptInfo from './IngredientConceptInfo'
+import ProductSummary from './ProductSummary'
 import FavoriteButton from './FavoriteButton'
 
 // 분류별 칩 색상 — CATEGORY_COLOR(분류 바와 동일한 브랜드 색)에서 배경 10% 톤을 파생
-// 같은 분류는 어디서나(분류 바, 원재료 칩) 같은 색을 쓰도록 한 곳에서 계산
+// 같은 분류는 어디서나(요약, 원재료 칩) 같은 색을 쓰도록 한 곳에서 계산
 const CATEGORY_STYLE = Object.fromEntries(
   Object.entries(CATEGORY_COLOR).map(([cat, color]) => [cat, { background: `${color}1a`, color }])
 )
@@ -27,27 +25,7 @@ function InfoRow({ label, value }) {
   )
 }
 
-const CHIP_LIMIT = 8
-
-// 카테고리 하나(기능성원료/첨가물/미확인)의 칩 목록 — 성분이 많으면 8개까지만 보여주고 "더보기"로 펼침
-// 접힌 상태에서도 경고 등급 성분이 가려지지 않도록 항상 앞쪽에 정렬
-function IngredientChipGroup({ items, modeWarnings, myAllergies, onSelect }) {
-  const [expanded, setExpanded] = useState(false)
-  const sorted = [...items].sort((a, b) => (a.grade === 'warning' ? -1 : 0) - (b.grade === 'warning' ? -1 : 0))
-  const visible = expanded ? sorted : sorted.slice(0, CHIP_LIMIT)
-  const hiddenCount = sorted.length - visible.length
-
-  return (
-    <>
-      <IngredientChips items={visible} modeWarnings={modeWarnings} myAllergies={myAllergies} onSelect={onSelect} />
-      {hiddenCount > 0 && (
-        <button type="button" className="btn-plain chip-more" onClick={() => setExpanded(true)}>
-          + {hiddenCount}개 더보기
-        </button>
-      )}
-    </>
-  )
-}
+const CHIP_LIMIT = 10
 
 function IngredientChips({ items, modeWarnings, myAllergies, onSelect }) {
   return (
@@ -55,15 +33,6 @@ function IngredientChips({ items, modeWarnings, myAllergies, onSelect }) {
       {items.map((ing, i) => {
         const modeWarningReason = modeWarnings[ing.name]
         const myAllergyHit = ing.allergens.some((a) => myAllergies.includes(a))
-        const tooltip = [
-          ing.detail,
-          ing.allergens.length > 0 ? `알레르기 유발물질: ${ing.allergens.join(', ')}` : null,
-          myAllergyHit ? '내가 등록한 알레르기 유발물질과 일치해요' : null,
-          ing.controversial ? `해외 논란 참고용: ${ing.controversial.reason}` : null,
-          modeWarningReason ? `개인화 모드 주의: ${modeWarningReason}` : null,
-        ]
-          .filter(Boolean)
-          .join(' / ')
 
         return (
           <button
@@ -71,7 +40,6 @@ function IngredientChips({ items, modeWarnings, myAllergies, onSelect }) {
             type="button"
             className="chip"
             onClick={() => onSelect(ing)}
-            title={tooltip || undefined}
             style={{
               ...CATEGORY_STYLE[ing.category],
               ...(ing.grade === 'warning' ? { boxShadow: '0 0 0 1.5px #d03b3b' } : {}),
@@ -89,69 +57,45 @@ function IngredientChips({ items, modeWarnings, myAllergies, onSelect }) {
   )
 }
 
-function IngredientList({ rawmtrlNm, primaryFnclty, modeWarnings, myAllergies, interactions, onSelectIngredient }) {
-  if (!rawmtrlNm) return null
-  const ingredients = parseIngredients(rawmtrlNm, primaryFnclty)
+// 원재료 전체 목록 — 분류별로 쪼개지 않고 한 덩어리로 보여주되, 확인이 필요한 성분을 앞으로 정렬
+// (분류별 구간을 나누면 같은 성분이 위 경고 패널과 아래 칩에 흩어져 두 번 읽히게 됨)
+function IngredientChipList({ ingredients, modeWarnings, myAllergies, onSelect }) {
+  const [expanded, setExpanded] = useState(false)
 
-  // 분류별로 묶기
-  const groups = {
-    functional: ingredients.filter((i) => i.category === 'functional'),
-    additive: ingredients.filter((i) => i.category === 'additive'),
-    unknown: ingredients.filter((i) => i.category === 'unknown'),
-  }
+  const sorted = [...ingredients].sort((a, b) => {
+    const score = (ing) => (ing.grade === 'warning' ? 0 : ing.category === 'unknown' ? 1 : 2)
+    return score(a) - score(b)
+  })
 
-  const counts = {
-    functional: groups.functional.length,
-    additive: groups.additive.length,
-    unknown: groups.unknown.length,
-  }
+  const visible = expanded ? sorted : sorted.slice(0, CHIP_LIMIT)
+  const hiddenCount = sorted.length - visible.length
 
   return (
-    <div style={{ marginTop: '1rem' }}>
-      <IngredientConceptInfo title={`원재료 (${ingredients.length}개)`} />
-
-      <IngredientGradeBar ingredients={ingredients} />
-
-      <IngredientWarnings ingredients={ingredients} />
-
-      <IngredientInteractions ingredients={ingredients} interactions={interactions} />
-
-      {/* 분류(기능성원료/첨가물) 구성비는 안전성 정보보다 보조적이라 아래로 배치 */}
-      <IngredientCategoryBar counts={counts} total={ingredients.length} />
-
-      <div style={{ marginTop: '1rem' }}>
-      {['functional', 'additive', 'unknown'].map((cat) =>
-        groups[cat].length === 0 ? null : (
-          <div key={cat} style={{ marginBottom: '0.75rem' }}>
-            <p style={{ margin: '0 0 0.3rem', fontSize: '0.8rem', color: '#888' }}>
-              {CATEGORY_LABEL[cat]} {groups[cat].length}개
-            </p>
-            <IngredientChipGroup
-              items={groups[cat]}
-              modeWarnings={modeWarnings}
-              myAllergies={myAllergies}
-              onSelect={onSelectIngredient}
-            />
-          </div>
-        )
+    <>
+      <IngredientChips
+        items={visible}
+        modeWarnings={modeWarnings}
+        myAllergies={myAllergies}
+        onSelect={onSelect}
+      />
+      {hiddenCount > 0 && (
+        <button type="button" className="btn-plain chip-more" onClick={() => setExpanded(true)}>
+          + {hiddenCount}개 더보기
+        </button>
       )}
-      </div>
-    </div>
+    </>
   )
 }
 
-// 상세 페이지 제품 이미지 — IMAGE_URL(HACCP 공식 이미지)이 없으면 네이버쇼핑으로 보강.
-// 그래도 없거나 로드 실패하면 박스 자체는 항상 보여줌(플레이스홀더)
-function ProductImage({ src, query }) {
+// 상세 페이지 제품 이미지 — 실제 이미지가 있을 때만 렌더링.
+// C003(건강기능식품)에는 이미지 필드 자체가 없어서, 플레이스홀더를 두면 항상 빈 상자만 남음
+function ProductImage({ src }) {
   const [failed, setFailed] = useState(false)
-  const naverSrc = useNaverImage(src ? null : query)
-  const resolvedSrc = src || naverSrc
-  const showPlaceholder = !resolvedSrc || failed
+  if (!src || failed) return null
 
   return (
     <div className="product-image-box">
-      {!showPlaceholder && <img src={resolvedSrc} alt="" onError={() => setFailed(true)} />}
-      {showPlaceholder && <span className="product-image-fallback">🖼️ 제품 이미지</span>}
+      <img src={src} alt="" onError={() => setFailed(true)} />
     </div>
   )
 }
@@ -165,24 +109,39 @@ function ProductDetail({
   favorited = false,
   onToggleFavorite,
 }) {
+  const ingredients = parseIngredients(product.RAWMTRL_NM, product.PRIMARY_FNCLTY)
+
+  const counts = {
+    functional: ingredients.filter((i) => i.category === 'functional').length,
+    additive: ingredients.filter((i) => i.category === 'additive').length,
+    unknown: ingredients.filter((i) => i.category === 'unknown').length,
+  }
+  // 분류 구성은 별도 바 대신 한 줄 요약으로 — 등급 바와 축이 달라 나란히 두면 헷갈림
+  const compositionText = ['functional', 'additive', 'unknown']
+    .filter((cat) => counts[cat] > 0)
+    .map((cat) => `${CATEGORY_LABEL[cat]} ${counts[cat]}`)
+    .join(' · ')
+
   return (
-    <div style={{ marginTop: '0.5rem' }}>
+    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {/* 1. 제품 정보 — 업체명을 제품명 위 mono로 (검색 결과 카드와 같은 문법) */}
       <div className="card">
-        {/* 뱃지 + 제품명을 플렉스박스로 한 줄에 나란히 배치 */}
+        <span className="result-biz">{product.BSSH_NM}</span>
         <div className="product-title-row">
-          {/* _source가 있으면 fallback(일반식품·HACCP·수입식품)에서 온 건강보조식품
-              — 리스트 카드(.result-badge)와 같은 외곽선 뱃지 스타일 */}
-          <span className={`outline-badge ${product._source ? 'supplement' : 'certified'}`}>
-            {product._source ? '건강보조식품' : '건강기능식품'}
-          </span>
-          <h2 style={{ margin: 0, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>{product.PRDLST_NM}</h2>
+          <h2 className="product-name">{product.PRDLST_NM}</h2>
           {onToggleFavorite && (
             <FavoriteButton favorited={favorited} onToggle={onToggleFavorite} size="lg" />
           )}
         </div>
-        <p className="result-biz" style={{ display: 'block', marginTop: '0.35rem' }}>{product.BSSH_NM}</p>
 
-        {/* 식약처가 이 제품에 대해 직접 인정한 기능성 문구 — 핵심 정보라 별도 강조 박스로 구분 */}
+        {/* _source가 있으면 fallback(일반식품·HACCP·수입식품)에서 온 건강보조식품 */}
+        <div style={{ marginTop: '0.5rem' }}>
+          <span className={`outline-badge ${product._source ? 'supplement' : 'certified'}`}>
+            {product._source ? '건강보조식품' : '건강기능식품'}
+          </span>
+        </div>
+
+        {/* 식약처가 이 제품에 대해 직접 인정한 기능성 문구 — 핵심 근거라 강조 박스로 구분 */}
         {product.PRIMARY_FNCLTY && (
           <div className="fnclty-callout">
             <p className="fnclty-label">✅ 식약처 인정 기능성</p>
@@ -190,24 +149,34 @@ function ProductDetail({
           </div>
         )}
 
-        <ProductImage
-          src={product.IMAGE_URL}
-          query={`${product.PRDLST_NM ?? ''} ${product.BSSH_NM ?? ''}`.trim()}
-        />
+        <ProductImage src={product.IMAGE_URL} />
+      </div>
 
-        <div className="section-divider" />
+      {/* 2. 숫자 요약 + 등급 바 */}
+      <ProductSummary ingredients={ingredients} />
 
-        <IngredientList
-          rawmtrlNm={product.RAWMTRL_NM}
-          primaryFnclty={product.PRIMARY_FNCLTY}
-          modeWarnings={modeWarnings}
-          myAllergies={myAllergies}
-          interactions={interactions}
-          onSelectIngredient={onSelectIngredient}
-        />
+      {/* 3. 확인이 필요한 성분 — 해당 성분이 있을 때만 카드가 생김 */}
+      <IngredientWarnings ingredients={ingredients} asCard />
 
-        <div className="section-divider" />
+      {/* 4. 원재료 전체 + 성분 간 상호작용 */}
+      {ingredients.length > 0 && (
+        <div className="card">
+          <IngredientConceptInfo title={`원재료 ${ingredients.length}개`} />
+          <p className="composition-line">{compositionText}</p>
 
+          <IngredientChipList
+            ingredients={ingredients}
+            modeWarnings={modeWarnings}
+            myAllergies={myAllergies}
+            onSelect={onSelectIngredient}
+          />
+
+          <IngredientInteractions ingredients={ingredients} interactions={interactions} />
+        </div>
+      )}
+
+      {/* 5. 제품 상세 정보 */}
+      <div className="card">
         <h3 className="section-title">
           <span className="capsule-dot" />
           제품 상세 정보

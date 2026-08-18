@@ -131,8 +131,8 @@ function IngredientDetail({ ingredient, primaryFnclty, modeWarningReason }) {
   const role = extractIngredientRole(primaryFnclty, ingredient.name)
 
   return (
-    <div style={{ marginTop: '1rem' }}>
-      <div className="card">
+    <div>
+      <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="capsule-dot" />
           <h3 style={{ margin: 0 }}>{ingredient.name}</h3>

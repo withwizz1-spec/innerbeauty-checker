@@ -35,14 +35,15 @@ function WarningRow({ icon, label, items, source, renderDetail }) {
   )
 }
 
-function IngredientWarnings({ ingredients }) {
+// asCard: 제품 상세에서 이 패널만 독립된 카드로 세울 때 사용 (해당 성분이 없으면 카드 자체가 안 생김)
+function IngredientWarnings({ ingredients, asCard = false }) {
   const flagged = ingredients.filter((i) => i.grade === 'warning')
   if (flagged.length === 0) return null
 
   const allergenItems = flagged.filter((i) => i.allergens.length > 0)
   const controversialItems = flagged.filter((i) => i.controversial)
 
-  return (
+  const panel = (
     <div className="warning-panel">
       <strong className="warning-panel-title">⚠️ 확인이 필요한 성분 {flagged.length}개</strong>
 
@@ -73,6 +74,8 @@ function IngredientWarnings({ ingredients }) {
       </div>
     </div>
   )
+
+  return asCard ? <div className="card">{panel}</div> : panel
 }
 
 export default IngredientWarnings

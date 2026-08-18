@@ -13,11 +13,13 @@ import ProductDetail from './components/ProductDetail'
 import IngredientDetail from './components/IngredientDetail'
 import AuthPanel from './components/AuthPanel'
 import ConfirmDialog from './components/ConfirmDialog'
+import Modal from './components/Modal'
 import FavoritesView from './components/FavoritesView'
 import CapsuleLayoutGreen from './components/CapsuleLayoutGreen'
 
 function App() {
-  // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'ingredient' | 'auth' | 'favorites'
+  // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'auth' | 'favorites'
+  // (성분 상세는 화면이 아니라 팝업 — 제품 상세를 보던 자리를 잃지 않도록)
   const [screen, setScreen] = useState('home')
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState(null)
@@ -107,13 +109,12 @@ function App() {
     fetchModeWarnings(user?.health_mode ?? 'none').then(setModeWarnings).catch(() => setModeWarnings({}))
   }, [user?.health_mode])
 
-  // 화면별 뒤로가기 대상 — ingredient→detail→results→home
+  // 화면별 뒤로가기 대상 — detail→(results 또는 favorites)→home
   // 상세 화면은 검색 결과에서도, 찜 목록에서도 열리므로 어디서 왔는지 기억해뒀다가 되돌아감
   const [detailOrigin, setDetailOrigin] = useState('results')
 
   function goBack() {
-    if (screen === 'ingredient') setScreen('detail')
-    else if (screen === 'detail') setScreen(detailOrigin)
+    if (screen === 'detail') setScreen(detailOrigin)
     else setScreen('home')
   }
 
@@ -125,7 +126,6 @@ function App() {
 
   function openIngredient(ingredient) {
     setSelectedIngredient(ingredient)
-    setScreen('ingredient')
   }
 
   function handleAuthSuccess(newToken) {
@@ -296,14 +296,6 @@ function App() {
         />
       )}
 
-      {screen === 'ingredient' && selectedIngredient && (
-        <IngredientDetail
-          ingredient={selectedIngredient}
-          primaryFnclty={selectedProduct?.PRIMARY_FNCLTY}
-          modeWarningReason={modeWarnings[selectedIngredient.name]}
-        />
-      )}
-
       {screen === 'favorites' && (
         <div style={{ marginTop: '0.5rem' }}>
           <FavoritesView
@@ -326,6 +318,20 @@ function App() {
         </div>
       )}
       </div>
+
+      <Modal
+        open={selectedIngredient !== null}
+        title="성분 상세"
+        onClose={() => setSelectedIngredient(null)}
+      >
+        {selectedIngredient && (
+          <IngredientDetail
+            ingredient={selectedIngredient}
+            primaryFnclty={selectedProduct?.PRIMARY_FNCLTY}
+            modeWarningReason={modeWarnings[selectedIngredient.name]}
+          />
+        )}
+      </Modal>
 
       <ConfirmDialog
         open={loginPrompt}

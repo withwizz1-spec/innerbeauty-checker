@@ -523,6 +523,135 @@ button.btn-plain:hover {
   color: var(--brand-strong);
 }
 
+/* ---------- 성분 상세 팝업 ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(23, 33, 27, 0.42);
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  /* 아래에서 올라오는 시트라 위쪽만 둥글게 */
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 -12px 44px rgba(23, 33, 27, 0.24);
+  animation: sheet-up 0.22s ease;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(14px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 넓은 화면에선 아래 붙은 시트 대신 가운데 카드로 */
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; padding: 1.5rem; }
+  .modal-sheet { border-radius: var(--radius); box-shadow: 0 20px 50px rgba(23, 33, 27, 0.24); }
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-right: -0.35rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.modal-close:hover { background: var(--brand-soft); color: var(--brand-strong); }
+
+.modal-body {
+  overflow-y: auto;
+  padding: 1.15rem 1.15rem 1.5rem;
+}
+
+/* ---------- 제품 상세 — 숫자 요약 ---------- */
+.product-name {
+  margin: 0.15rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.summary-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: #f1f0e9; /* 랜딩 --paper-dim과 같은 톤 */
+}
+
+.summary-stat.warn { background: #fdecea; }
+.summary-stat.unknown { background: #eef1f4; }
+
+.summary-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.summary-stat.warn .summary-num { color: #9b1c14; }
+.summary-stat.unknown .summary-num { color: #45505c; }
+
+.summary-label {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* 분류 구성 — 별도 바 대신 한 줄 (등급 바와 축이 달라 나란히 두면 헷갈림) */
+.composition-line {
+  margin: 0.6rem 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* ---------- 확인 모달 ---------- */
 .dialog-backdrop {
   position: fixed;
