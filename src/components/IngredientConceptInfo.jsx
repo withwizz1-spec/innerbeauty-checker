@@ -51,8 +51,13 @@ function IngredientConceptInfo({ title }) {
             <strong>기능성원료보다 덜 안전하다는 뜻이 아니라, 역할이 다를 뿐이에요.</strong>
           </div>
           <div>
+            <strong style={{ color: CATEGORY_COLOR.base }}>식품 원료</strong> — 우유, 정제수, 설탕처럼 우리가 평소
+            먹는 식품이 그대로 들어간 거예요. 기능성을 인정받은 원료도, 가공을 위해 넣은 첨가물도
+            아니라서 따로 구분합니다.
+          </div>
+          <div>
             <strong style={{ color: CATEGORY_COLOR.unknown }}>미확인</strong> — 이 앱이 가진 작은 분류 사전에 이름이
-            없어서, 기능성원료인지 첨가물인지 자동으로 구분하지 못한 성분이에요. 이 원료가 포함된
+            없어서 어느 분류인지 자동으로 구분하지 못한 성분이에요. 이 원료가 포함된
             제품은 이미 건강기능식품으로 식약처 승인을 받았기 때문에, 원료 자체는 그 승인 과정에서
             이미 검토된 상태예요 — <strong>검증이 안 됐거나 안전성이 불확실하다는 뜻이 아니에요.</strong>
           </div>

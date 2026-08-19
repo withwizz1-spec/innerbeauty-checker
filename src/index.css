@@ -598,6 +598,115 @@ button.btn-plain:hover {
   padding: 1.15rem 1.15rem 1.5rem;
 }
 
+/* ---------- 성분 상세 — 판정 배너 ---------- */
+/* 분류·등급 칩은 성분명 위 — 이름을 읽기 전에 "무엇으로 분류됐는지"가 먼저 보이도록 */
+.ing-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.ing-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ing-detail {
+  margin-top: 0.2rem;
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+/* 칩만으로는 "그래서 먹어도 되나"가 안 읽혀서, 결론을 문장으로 먼저 보여주는 배너 */
+.verdict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+}
+
+.verdict-icon {
+  font-size: 1.1rem;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.verdict-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.verdict-desc {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.verdict-banner.tone-warn { background: #fdecea; border-color: #f3c9c4; }
+.tone-warn .verdict-title { color: #9b1c14; }
+.tone-warn .verdict-desc { color: #a8443c; }
+
+.verdict-banner.tone-functional { background: #eef6f0; border-color: #cfe3d6; }
+.tone-functional .verdict-title { color: var(--brand-strong); }
+.tone-functional .verdict-desc { color: #3d6b4f; }
+
+.verdict-banner.tone-additive { background: #fdf1ec; border-color: #f2d6c8; }
+.tone-additive .verdict-title { color: #a8431f; }
+.tone-additive .verdict-desc { color: #9c5c40; }
+
+.verdict-banner.tone-base { background: #eef3f7; border-color: #d3e0ea; }
+.tone-base .verdict-title { color: #33546f; }
+.tone-base .verdict-desc { color: #4e6c85; }
+
+/* 미확인만 어두운 초록 — 이 앱이 존재하는 이유인 화면이라 랜딩 문제 섹션과 같은 재질을 씀 */
+.verdict-banner.tone-unknown {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tone-unknown .verdict-title { color: #fafaf6; }
+.tone-unknown .verdict-desc { color: #cfe3d7; }
+
+/* 배너와 이어 붙는 사실 목록 — 위 배너의 아래 모서리를 각지게 해 한 덩어리로 보이게 함 */
+.unknown-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.9rem 0.9rem;
+  background: var(--brand-strong);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.unknown-facts li {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #e6efe9;
+}
+
+.unknown-facts strong { color: #fafaf6; }
+
+.unknown-fact-icon { flex-shrink: 0; }
+
+.ing-source {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 /* ---------- 제품 상세 — 숫자 요약 ---------- */
 .product-name {
   margin: 0.15rem 0 0;

@@ -10,9 +10,11 @@ export function setCategoryDict(dict) {
 }
 
 // 이름 패턴 기반 추측 (사전에 없을 때 사용) — 첨가물 힌트
+// 끝소리로만 매칭하면 놓치는 표기가 실제로 있었음:
+//   '식용색소적색제40호'(색소로 안 끝남) / '결정셀룰로스'(오가 빠진 표기)
 const ADDITIVE_PATTERNS = [
-  /색소$/, /향$/, /향료$/, /스테아린산/, /셀룰로오스/, /덱스트린$/,
-  /검$/, /왁스$/, /배당체$/, /추출색소/,
+  /색소/, /향$/, /향료$/, /스테아린산/, /셀룰로오?스/, /덱스트린$/,
+  /검$/, /왁스$/, /배당체$/,
 ]
 
 // 제품의 "기능성"(PRIMARY_FNCLTY) 텍스트는 "[성분명]역할설명" 형태 — 식약처가 이
@@ -49,8 +51,14 @@ export function categorize(name, primaryFnclty) {
   if (matchDict(clean, 'functional')) {
     return 'functional'
   }
+  // 첨가물 이름 패턴을 식품 원료보다 먼저 확인 — '키위향'은 향료(첨가물)인데
+  // 식품 원료 사전의 '키위'가 먼저 걸리면 식품으로 잘못 분류됨
   if (ADDITIVE_PATTERNS.some((p) => p.test(clean))) {
     return 'additive'
+  }
+  // 식품 원료는 마지막 — '대두'(base)가 '대두레시틴'(첨가물)을 가로채지 않도록 순서가 중요함
+  if (matchDict(clean, 'base')) {
+    return 'base'
   }
   return 'unknown'
 }
@@ -58,15 +66,17 @@ export function categorize(name, primaryFnclty) {
 export const CATEGORY_LABEL = {
   functional: '기능성원료',
   additive: '첨가물',
+  base: '식품 원료',
   unknown: '미확인',
 }
 
-export const CATEGORY_ORDER = ['functional', 'additive', 'unknown']
+export const CATEGORY_ORDER = ['functional', 'additive', 'base', 'unknown']
 
 // 브랜드 팔레트에 맞춘 분류색 — 미확인은 등급 시스템의 '미확인'(ingredientGrade.js GRADE_COLOR.unknown)과
 // 동일한 회색을 써서, 앱 어디서든 "미확인 = 이 회색"이 되도록 통일
 export const CATEGORY_COLOR = {
   functional: '#2f6f52', // 브랜드 그린 (--brand)
   additive: '#ff9a76', // 웜 코랄 (--accent-warm)
+  base: '#5b7c99', // 회청색 — 평범한 식품 원료라 경고도 강조도 아닌 중립 톤
   unknown: '#75808f',
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { parseIngredients } from '../utils/parseIngredients'
-import { CATEGORY_LABEL, CATEGORY_COLOR } from '../data/ingredientCategory'
+import { CATEGORY_LABEL, CATEGORY_COLOR, CATEGORY_ORDER } from '../data/ingredientCategory'
 import { GRADE_ICON } from '../data/ingredientGrade'
 import IngredientInteractions from './IngredientInteractions'
 import IngredientWarnings from './IngredientWarnings'
@@ -111,15 +111,13 @@ function ProductDetail({
 }) {
   const ingredients = parseIngredients(product.RAWMTRL_NM, product.PRIMARY_FNCLTY)
 
-  const counts = {
-    functional: ingredients.filter((i) => i.category === 'functional').length,
-    additive: ingredients.filter((i) => i.category === 'additive').length,
-    unknown: ingredients.filter((i) => i.category === 'unknown').length,
-  }
   // 분류 구성은 별도 바 대신 한 줄 요약으로 — 등급 바와 축이 달라 나란히 두면 헷갈림
-  const compositionText = ['functional', 'additive', 'unknown']
-    .filter((cat) => counts[cat] > 0)
-    .map((cat) => `${CATEGORY_LABEL[cat]} ${counts[cat]}`)
+  const compositionText = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    count: ingredients.filter((i) => i.category === cat).length,
+  }))
+    .filter(({ count }) => count > 0)
+    .map(({ cat, count }) => `${CATEGORY_LABEL[cat]} ${count}`)
     .join(' · ')
 
   return (
