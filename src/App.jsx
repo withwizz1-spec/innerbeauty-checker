@@ -16,6 +16,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import Modal from './components/Modal'
 import FavoritesView from './components/FavoritesView'
 import CapsuleLayoutGreen from './components/CapsuleLayoutGreen'
+import LoadingCapsules from './components/LoadingCapsules'
 
 function App() {
   // 화면 전환 상태머신 — 'home' | 'results' | 'detail' | 'auth' | 'favorites'
@@ -24,6 +25,7 @@ function App() {
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [selectedIngredient, setSelectedIngredient] = useState(null)
@@ -147,6 +149,7 @@ function App() {
   async function handleSearch(e) {
     e.preventDefault()
     if (!keyword.trim()) return
+    const searchedKeyword = keyword
 
     setScreen('results')
     setLoading(true)
@@ -157,13 +160,14 @@ function App() {
       let data = null
       let searchError = null
       try {
-        data = await searchProducts(keyword)
+        data = await searchProducts(searchedKeyword)
       } catch (err) {
         searchError = err // C003이 죽어 있어도 fallback 소스는 시도
       }
 
       if (data?.products.length > 0) {
-        setResults(data)
+        // 검색어를 결과에 함께 저장 — "더보기"를 누를 때 그 사이 입력창을 고쳤어도 원래 검색어로 이어서 불러옴
+        setResults({ ...data, keyword: searchedKeyword })
         return
       }
 
@@ -191,6 +195,28 @@ function App() {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 더보기 — 건강기능식품(C003) 정상 경로에서만 지원 (건강보조식품 fallback은 세 소스를 순회하는
+  // 구조라 페이지 개념을 넣기엔 복잡도가 커서 범위 밖으로 둠, results.fallbackUsed면 버튼 자체가 안 뜸)
+  async function handleLoadMore() {
+    if (!results || loadingMore) return
+    const nextStart = results.products.length + 1
+    const nextEnd = nextStart + 9
+
+    setLoadingMore(true)
+    try {
+      const more = await searchProducts(results.keyword, nextStart, nextEnd)
+      setResults((prev) => ({
+        ...prev,
+        products: [...prev.products, ...more.products],
+        totalCount: more.totalCount,
+      }))
+    } catch {
+      setError('추가 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -254,7 +280,7 @@ function App() {
 
       {screen === 'results' && (
         <div style={{ marginTop: '0.5rem' }}>
-          {loading && <p style={{ color: 'var(--text-muted)' }}>검색 중...</p>}
+          {loading && <LoadingCapsules />}
           {error && <p style={{ color: '#cf1322', fontSize: '0.9rem' }}>오류: {error}</p>}
 
           {results && (
@@ -276,6 +302,9 @@ function App() {
                     onSelect={openProduct}
                     favorites={favorites}
                     onToggleFavorite={toggleFavorite}
+                    hasMore={!results.fallbackUsed && results.products.length < results.totalCount}
+                    loadingMore={loadingMore}
+                    onLoadMore={handleLoadMore}
                   />
                 </>
               )}

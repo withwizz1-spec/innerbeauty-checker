@@ -1,0 +1,124 @@
+/* 검색 결과 로딩 화면 — src/components/LoadingCapsules.jsx 전용 스타일
+   밝은/짙은 두 톤 캡슐 쌍은 이 파일에만 있는 값 — CATEGORY_COLOR(ingredientCategory.js)는
+   뱃지용 단일색이라 로딩 연출까지 그 값을 늘리지 않고 여기서 각 색의 밝은/짙은 쌍만 따로 정의함 */
+.loading-capsules {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0 8px;
+
+  --lc-functional-light: #8fbfa3;
+  --lc-functional-dark: #173c2c;
+  --lc-additive-light: #ffcbb0;
+  --lc-additive-dark: #c65f3a;
+  --lc-base-light: #a9c0d1;
+  --lc-base-dark: #3c576d;
+}
+
+.lc-stage {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+/* 고정된 궤도 선 — 도는 캡슐과 분리된 레이어라 회전해도 흔들리지 않음 */
+.lc-track {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border);
+}
+.lc-track-1 { width: 44%; height: 44%; }
+.lc-track-2 { width: 68%; height: 68%; }
+.lc-track-3 { width: 92%; height: 92%; }
+
+.lc-lens {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 3;
+  width: 23%;
+  min-width: 48px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  animation: lc-breathe 3s ease-in-out infinite;
+}
+@keyframes lc-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 22%, transparent); transform: scale(1); }
+  50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--brand) 0%, transparent); transform: scale(1.04); }
+}
+
+/* 안쪽 궤도일수록 빠르게 — 실제 공전처럼 */
+.lc-orbit { position: absolute; inset: 0; margin: auto; border-radius: 50%; }
+.lc-orbit-1 { width: 44%; height: 44%; animation: lc-spin-cw 3.6s linear infinite; }
+.lc-orbit-2 { width: 68%; height: 68%; animation: lc-spin-ccw 5.6s linear infinite; }
+.lc-orbit-3 { width: 92%; height: 92%; animation: lc-spin-cw 8.4s linear infinite; }
+@keyframes lc-spin-cw { to { transform: rotate(360deg); } }
+@keyframes lc-spin-ccw { to { transform: rotate(-360deg); } }
+
+/* 진짜 캡슐처럼: 위/아래 두 톤 + 가운데 이음선 + 좌상단 유광 하이라이트 */
+.lc-cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 17px;
+  height: 38px;
+  margin-left: -8.5px;
+  margin-top: -19px;
+  border-radius: 8.5px;
+  background:
+    radial-gradient(ellipse 55% 30% at 32% 18%, rgba(255, 255, 255, .65), rgba(255, 255, 255, 0) 72%),
+    linear-gradient(to bottom, var(--cap-light) 0 50%, var(--cap-dark) 50% 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(23, 33, 27, .08),
+    0 3px 6px rgba(23, 33, 27, .16);
+}
+.lc-cap::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 50%;
+  height: 1px;
+  margin-top: -.5px;
+  background: rgba(23, 33, 27, .16);
+}
+/* 캡슐 자체는 궤도 회전과 반대로 같은 시간만큼 돌려서 항상 똑바로 서 있게 함 */
+.lc-cap-functional { --cap-light: var(--lc-functional-light); --cap-dark: var(--lc-functional-dark); animation: lc-unspin-cw 3.6s linear infinite; }
+.lc-cap-additive { --cap-light: var(--lc-additive-light); --cap-dark: var(--lc-additive-dark); animation: lc-unspin-ccw 5.6s linear infinite; }
+.lc-cap-base { --cap-light: var(--lc-base-light); --cap-dark: var(--lc-base-dark); animation: lc-unspin-cw 8.4s linear infinite; }
+@keyframes lc-unspin-cw { to { transform: rotate(-360deg); } }
+@keyframes lc-unspin-ccw { to { transform: rotate(360deg); } }
+
+/* 상태 문구 — 순환 크로스페이드 */
+.lc-status {
+  position: relative;
+  height: 1.4em;
+  margin-top: 18px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+.lc-status span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: lc-status-cycle 5.1s ease-in-out infinite;
+}
+.lc-status span:nth-child(1) { animation-delay: 0s; }
+.lc-status span:nth-child(2) { animation-delay: 1.7s; }
+.lc-status span:nth-child(3) { animation-delay: 3.4s; }
+@keyframes lc-status-cycle { 0%, 4% { opacity: 0; } 8%, 29% { opacity: 1; } 33%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-capsules * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}

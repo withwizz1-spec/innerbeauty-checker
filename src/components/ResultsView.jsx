@@ -21,7 +21,16 @@ function summarize(product, myAllergies) {
   }
 }
 
-function ResultsView({ products, myAllergies = [], onSelect, favorites, onToggleFavorite }) {
+function ResultsView({
+  products,
+  myAllergies = [],
+  onSelect,
+  favorites,
+  onToggleFavorite,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('relevance')
 
@@ -80,6 +89,19 @@ function ResultsView({ products, myAllergies = [], onSelect, favorites, onToggle
           favorites={favorites}
           onToggleFavorite={onToggleFavorite}
         />
+      )}
+
+      {/* 필터와 무관하게 "더 불러온 결과가 있는지"는 원본 목록 기준 — 필터링은 이미 불러온 것 안에서만 동작 */}
+      {hasMore && (
+        <button
+          type="button"
+          className="btn-ghost"
+          style={{ width: '100%', marginTop: '1rem' }}
+          onClick={onLoadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore ? '불러오는 중...' : '더보기'}
+        </button>
       )}
     </>
   )
