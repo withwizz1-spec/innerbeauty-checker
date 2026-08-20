@@ -24,6 +24,9 @@
   --tint-2:#EDF1E7;   /* 카드/기능 리스트 배경 2 */
   --tint-3:#E1EAE3;   /* 카드/기능 리스트 배경 3 */
 
+  /* 떠다니는 캡슐의 밝은 쪽 — 히어로 배경(--tint-1)과 같은 계열이면 묻히므로 따뜻한 아이보리로 분리 */
+  --capsule-ivory:#F8F4E7;
+
   --amber:#C97A22;
   --amber-soft:#F5E8D6;
   --red:#B03A32;
@@ -46,8 +49,11 @@
 .cg-root ::selection{background:var(--green-soft);color:var(--green-deep);}
 .cg-root a,.cg-scope a{color:inherit;text-decoration:none;}
 .cg-root button,.cg-scope button{font-family:inherit;cursor:pointer;border:none;background:none;}
-/* 나머지 화면(.app-shell)과 같은 760px — 홈↔결과 화면 전환 시 폭이 갑자기 바뀌지 않도록 */
-.cg-container{max-width:760px;margin:0 auto;padding:0 24px;}
+/* 랜딩만 1040px — 히어로가 2단(왼쪽 카피/검색 + 오른쪽 카드)이라 760px에선 헤드라인이 뭉개짐.
+   .cg-container는 홈 컴포넌트에서만 쓰이므로 다른 화면(.app-shell 760px)에는 영향 없음 */
+.cg-container{max-width:1040px;margin:0 auto;padding:0 24px;}
+/* nav는 전 화면 공용이라, 홈(.cg-root) 안에 있을 때만 본문 폭에 맞춰 함께 넓힘 */
+.cg-root .cg-nav-inner{max-width:1040px;}
 
 @media (prefers-reduced-motion: reduce){
   .cg-root *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
@@ -92,31 +98,46 @@ a.cg-nav-cta:hover{background:var(--green-deep);transform:translateY(-1px);}
 .nav-dropdown-danger:hover{background:var(--red-soft) !important;color:var(--red) !important;}
 
 /* ---------- hero ---------- */
-.cg-hero{padding:clamp(20px,6vw,30px) 0 0;position:relative;}
+/* 히어로만 옅은 민트그린 띠 — 아래 아티클/CTA 섹션(페이퍼)과 색으로 구분됨 */
+.cg-hero{background:var(--tint-1);padding:clamp(28px,5vw,44px) 0 clamp(32px,5vw,52px);position:relative;}
 .cg-hero-inner{position:relative;}
 .cg-float-capsule{position:absolute;border-radius:999px;animation:cg-floaty 6s ease-in-out infinite;}
 .cg-float-capsule::before,.cg-float-capsule::after{content:'';position:absolute;top:0;bottom:0;width:50%;}
 .cg-float-capsule::before{left:0;border-radius:999px 0 0 999px;}
 .cg-float-capsule::after{right:0;border-radius:0 999px 999px 0;}
-.cg-fc1{width:64px;height:26px;top:8px;right:60px;transform:rotate(-24deg);animation-delay:0s;}
+/* 좌표 기준은 .cg-hero-left — 2단 히어로가 되면서 오른쪽 확인 카드 위에 겹치던 것을 제목 옆으로 옮김 */
+.cg-fc1{width:64px;height:26px;top:2px;right:24px;transform:rotate(-24deg);animation-delay:0s;}
 .cg-fc1::before{background:var(--green-deep);}
-.cg-fc1::after{background:var(--green-soft);}
-.cg-fc2{width:44px;height:18px;top:120px;right:-10px;transform:rotate(18deg);animation-delay:1.4s;}
+.cg-fc1::after{background:var(--capsule-ivory);}
+.cg-fc2{width:44px;height:18px;top:82px;right:-8px;transform:rotate(18deg);animation-delay:1.4s;}
 .cg-fc2::before{background:var(--green);}
-.cg-fc2::after{background:var(--tint-1);}
-.cg-fc3{width:36px;height:15px;top:210px;right:130px;transform:rotate(-10deg);animation-delay:2.6s;}
+.cg-fc2::after{background:var(--capsule-ivory);}
+.cg-fc3{width:36px;height:15px;top:148px;right:64px;transform:rotate(-10deg);animation-delay:2.6s;}
 .cg-fc3::before{background:var(--green-mid);}
-.cg-fc3::after{background:var(--tint-3);}
+.cg-fc3::after{background:var(--capsule-ivory);}
 @keyframes cg-floaty{0%,100%{transform:translateY(0) rotate(var(--r,0deg));}50%{transform:translateY(-14px) rotate(var(--r,0deg));}}
 @media (max-width:760px){.cg-float-capsule{display:none;}}
 
-.cg-hero h1{font-size:clamp(32px,5.2vw,54px);font-weight:800;letter-spacing:-0.03em;line-height:1.2;max-width:760px;}
-.cg-hero h1 .cg-accent{color:var(--green-deep);white-space:nowrap;}
+/* 2단 히어로 — 왼쪽은 카피+검색, 오른쪽은 확인 카드 + 문제 카드 캐러셀.
+   align-items:start 로 오른쪽 카드를 위에 붙여야 카드 두 개가 한 화면에 들어감 */
+.cg-hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:44px;align-items:start;}
+/* 떠다니는 캡슐(.cg-float-capsule)의 좌표 기준 */
+.cg-hero-left{position:relative;}
+.cg-hero-right{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
+@media (max-width:900px){
+  .cg-hero-grid{grid-template-columns:1fr;gap:32px;}
+  .cg-hero-right{padding-top:0;}
+}
+
+/* 2단이 되면서 왼쪽 칼럼 폭이 절반으로 줄어 헤드라인 크기도 함께 줄임 */
+.cg-hero h1{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.28;max-width:760px;}
+.cg-hero h1 .cg-accent{color:var(--green-deep);white-space:nowrap;text-decoration:underline;text-decoration-color:var(--green-pale);text-decoration-thickness:4px;text-underline-offset:6px;}
 /* 줄바꿈은 JSX의 <br />로 직접 끊음 — max-width는 그 줄들이 잘리지 않을 만큼만 확보 */
-.cg-hero-sub{margin-top:18px;font-size:17px;color:var(--ink-soft);max-width:560px;line-height:1.7;}
+.cg-hero-sub{margin-top:18px;font-size:15.5px;color:var(--ink-soft);max-width:460px;line-height:1.7;}
 .cg-hero-sub strong{color:var(--ink);font-weight:700;}
 
-.cg-hero-tabs{display:inline-flex;gap:4px;margin-top:26px;padding:4px;background:var(--tint-1);border-radius:999px;}
+/* 히어로 배경이 --tint-1이 되면서 같은 색이던 탭 배경이 안 보이게 돼 한 톤 다른 --green-soft로 바꿈 */
+.cg-hero-tabs{display:inline-flex;gap:4px;margin-top:26px;padding:4px;background:var(--green-soft);border-radius:999px;}
 .cg-hero-tab{font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:999px;color:var(--ink-soft);transition:background .15s ease,color .15s ease;}
 .cg-hero-tab.active{background:var(--green-deep);color:var(--paper);}
 
@@ -137,7 +158,8 @@ button.cg-hero-search-btn:hover{background:var(--green);transform:translateY(-1p
 
 /* 신뢰 칩 — 기존 히어로 아이브로우의 디자인(알약 아이콘 + 연녹색 알약 배경 + 모노 서체)을 그대로 물려받음 */
 .cg-hero-tags{margin-top:14px;margin-bottom:30px;display:flex;gap:8px;flex-wrap:wrap;}
-.cg-hero-tag{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green-deep);display:inline-flex;align-items:center;gap:8px;background:var(--green-soft);padding:7px 14px 7px 10px;border-radius:999px;}
+/* 칩 배경도 --green-soft였는데 히어로 배경과 거의 같은 색이라, 흰색을 얹어 한 단계 밝게 띄움 */
+.cg-hero-tag{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green-deep);display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.62);padding:7px 14px 7px 10px;border-radius:999px;}
 .cg-hero-tag strong{font-weight:800;}
 
 /* ---------- section shell ---------- */
@@ -148,43 +170,112 @@ button.cg-hero-search-btn:hover{background:var(--green);transform:translateY(-1p
 .cg-reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease;}
 .cg-reveal.cg-in{opacity:1;transform:translateY(0);}
 
-/* ---------- problem cards ---------- */
-.cg-problems{background:var(--green-deep);color:var(--paper);}
-.cg-problems .cg-section-eyebrow{color:#9FC4AE;}
-.cg-problems .cg-section-title{color:var(--paper);}
-.cg-problem-grid{margin-top:32px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.cg-problem-card{background:#1F4B37;padding:24px 20px;border-radius:var(--radius);transition:transform .2s ease, background .2s ease;}
-.cg-problem-card:hover{transform:translateY(-4px);background:#255A42;}
-.cg-problem-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px;}
-.cg-problem-num-capsule{width:38px;height:16px;}
-.cg-problem-badge{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:0.03em;padding:4px 9px;border-radius:999px;white-space:nowrap;background:rgba(255,255,255,0.14);color:#CFE3D7;}
-.cg-problem-num-capsule::before{background:var(--green-pale) !important;}
-.cg-problem-num-capsule::after{background:#3A6E54 !important;}
-/* index.css의 전역 h1~h4 색(--text-h, 거의 검정)이 상속을 이기기 때문에, 어두운 카드 위 제목은 색을 직접 지정해야 함 */
-.cg-problem-card h3{font-size:17px;font-weight:700;line-height:1.45;color:var(--paper);}
-.cg-problem-card p{margin-top:12px;font-size:14px;color:#B9D3C1;line-height:1.65;}
-@media (max-width:800px){.cg-problem-grid{grid-template-columns:1fr;}}
-
-/* ---------- scan preview ---------- */
-.cg-scan{background:var(--paper-dim);}
-.cg-scan-wrap{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media (max-width:760px){.cg-scan-wrap{grid-template-columns:1fr;}}
-.cg-scan-input{padding:26px 24px;background:var(--paper);border-radius:var(--radius);display:flex;flex-direction:column;justify-content:center;gap:16px;box-shadow:0 8px 30px rgba(23,33,27,0.06);}
-.cg-scan-product{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
-.cg-scan-product strong{display:block;font-family:var(--sans);font-size:19px;color:var(--ink);font-weight:800;margin-top:6px;}
-.cg-scan-progress{height:8px;background:var(--tint-1);border-radius:999px;overflow:hidden;margin-top:8px;}
-.cg-scan-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--green-pale));animation:cg-scanfill 3.4s ease-in-out infinite;}
+/* ---------- 확인 카드 (히어로 오른쪽 상단, 항상 고정 노출) ----------
+   이 앱이 무엇을 보여주는지 알려주는 유일한 실물이라 순환에서 빼고 항상 보이게 둠 */
+.cg-check-card{background:var(--paper);border-radius:var(--radius);padding:22px 24px;box-shadow:0 8px 30px rgba(23,33,27,0.08);}
+.cg-check-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+.cg-check-top strong{font-family:var(--sans);font-size:17px;color:var(--ink);font-weight:800;text-align:right;}
+.cg-check-bar{height:8px;background:var(--tint-1);border-radius:999px;overflow:hidden;margin:12px 0 4px;}
+.cg-check-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--green-pale));animation:cg-scanfill 3.4s ease-in-out infinite;}
 @keyframes cg-scanfill{0%{width:0%;}45%{width:100%;}55%{width:100%;}100%{width:0%;}}
-.cg-scan-status{font-family:var(--mono);font-size:12px;color:var(--green-deep);}
 
-.cg-scan-result{padding:22px 24px;background:var(--paper);border-radius:var(--radius);box-shadow:0 8px 30px rgba(23,33,27,0.06);}
-.cg-scan-result-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0;border-bottom:1px dashed #DEE4DC;font-size:13.5px;}
-.cg-scan-result-row:last-child{border-bottom:none;}
-.cg-scan-result-label{color:var(--ink-soft);}
-.cg-scan-result-value{font-family:var(--mono);font-weight:700;padding:4px 10px;border-radius:999px;}
+.cg-check-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0;border-bottom:1px dashed #DEE4DC;font-size:13.5px;}
+.cg-check-row:last-child{border-bottom:none;}
+.cg-check-label{color:var(--ink-soft);}
+.cg-check-value{font-family:var(--mono);font-weight:700;padding:4px 10px;border-radius:999px;}
 .cg-v-ok{color:var(--green-deep);background:var(--tint-1);}
 .cg-v-warn{color:#8A5A18;background:var(--amber-soft);}
 .cg-v-danger{color:var(--red);background:var(--red-soft);}
+/* 낯선 원료 — 이 앱의 핵심 차별점이라 성분명이 길어도 줄이지 않고 눈에 띄게 */
+.cg-v-key{color:var(--green-deep);background:var(--green-soft);}
+
+/* ---------- 문제 카드 캐러셀 (히어로 오른쪽 하단) ----------
+   예전 cg-problems 섹션(다크그린 3단 그리드)을 대체. 한 번에 한 장씩만 보여줌 */
+.cg-q-carousel{position:relative;}
+/* 카드마다 문장 길이가 달라 높이가 제각각이라, 보이는 영역 높이를 JS가 현재 카드에 맞춰 설정 */
+.cg-q-viewport{overflow:hidden;transition:height .4s cubic-bezier(.4,0,.2,1);}
+.cg-q-track{display:flex;align-items:flex-start;width:300%;transition:transform .5s cubic-bezier(.4,0,.2,1);}
+.cg-q-slide{flex:0 0 33.3333%;}
+.cg-q-card{background:var(--paper);border:1px solid #E4EAE7;border-radius:var(--radius);padding:20px 22px;}
+
+.cg-q-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green-deep);background:var(--green-soft);padding:6px 12px 6px 8px;border-radius:999px;margin-bottom:14px;}
+.cg-q-badge-capsule{width:20px;height:9px;}
+
+/* 사람 일러스트 — 원(머리) + 반타원(어깨)만으로 표현한 최소한의 아이콘 */
+.cg-q-row{display:flex;align-items:flex-start;gap:11px;margin-bottom:13px;}
+.cg-q-person{width:40px;height:40px;border-radius:50%;background:var(--green-soft);position:relative;flex-shrink:0;overflow:hidden;}
+.cg-q-person::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:var(--green-deep);}
+.cg-q-person::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:26px;height:17px;border-radius:13px 13px 0 0;background:var(--green-deep);}
+
+/* 말풍선 — 큰따옴표 질문이 들어가는 자리, 사람 쪽으로 꼬리가 붙음 */
+.cg-q-bubble{position:relative;background:var(--green-soft);border-radius:4px 14px 14px 14px;padding:11px 15px;font-size:14.5px;font-weight:700;line-height:1.45;color:var(--ink);}
+.cg-q-bubble::before{content:'';position:absolute;top:0;left:-6px;width:0;height:0;border-style:solid;border-width:0 8px 8px 0;border-color:transparent var(--green-soft) transparent transparent;}
+.cg-q-answer{margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.65;}
+
+/* 좌우 이동 버튼 — 튀지 않게 작고 반투명, hover/포커스에서만 또렷해짐 */
+.cg-q-arrow{
+  position:absolute;top:calc(50% - 12px);transform:translateY(-50%);
+  width:26px;height:26px;min-height:0;border-radius:50%;z-index:3;
+  background:var(--paper);border:1px solid #E4EAE7;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--ink-soft);
+  opacity:0.5;transition:opacity .15s ease;
+}
+.cg-q-arrow:hover,.cg-q-arrow:focus-visible{opacity:1;}
+.cg-q-arrow-prev{left:-11px;}
+.cg-q-arrow-next{right:-11px;}
+@media (max-width:520px){.cg-q-arrow-prev{left:4px;}.cg-q-arrow-next{right:4px;}}
+
+/* min-height:0 이 꼭 필요함 — index.css의 전역 `button{min-height:40px}`(터치 타깃용)이
+   min-height 특성상 height:6px를 이겨서, 없으면 점이 세로로 늘어난 타원이 됨 */
+.cg-q-dots{display:flex;justify-content:center;align-items:center;gap:6px;padding-top:12px;}
+.cg-q-dots button{flex:none;width:6px;height:6px;min-height:0;padding:0;border-radius:50%;background:#DEE4DC;transition:background .2s ease;}
+.cg-q-dots button.active{background:var(--green);}
+
+/* ---------- 정보성 아티클 그리드 ----------
+   ⚠️ 내용은 아직 자리표시용. 썸네일이 이모지 하나뿐인 것도 임시 —
+   확정되면 이미지 없이도 성립하는 타이포그래피 커버로 교체 예정 */
+/* 구분선 없이 — 위 히어로가 민트그린 띠라 색만으로 이미 경계가 생김 */
+.cg-articles-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;}
+.cg-articles-eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.1em;color:var(--ink-soft);}
+
+.cg-article-grid{
+  display:grid;gap:16px;
+  grid-template-columns:repeat(4,1fr);
+  grid-template-areas:
+    "feat feat card1 card2"
+    "feat feat card3 card4";
+}
+.cg-article-card{display:flex;flex-direction:column;background:var(--paper);border:1px solid #E4EAE7;border-radius:var(--radius-sm);overflow:hidden;transition:transform .2s ease, box-shadow .2s ease;}
+.cg-article-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(23,33,27,0.09);}
+.cg-article-thumb{height:92px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--tint-1);flex-shrink:0;}
+.cg-article-body{padding:16px 18px;display:flex;flex-direction:column;gap:8px;}
+.cg-article-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.03em;color:var(--green-deep);}
+.cg-article-card h3{font-size:15px;font-weight:700;line-height:1.45;}
+.cg-article-card p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6;}
+.cg-article-meta{margin-top:4px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);}
+
+/* 큰 카드는 2행을 차지 — 남는 높이를 본문 밑 여백이 아니라 썸네일이 가져가게 해야 구멍이 안 생김 */
+.cg-article-feat{grid-area:feat;}
+.cg-article-feat .cg-article-thumb{flex:1;min-height:170px;font-size:40px;background:var(--green-deep);color:var(--paper);}
+.cg-article-feat h3{font-size:19px;}
+.cg-article-feat p{font-size:14px;}
+
+.cg-article-card:nth-of-type(2){grid-area:card1;}
+.cg-article-card:nth-of-type(3){grid-area:card2;}
+.cg-article-card:nth-of-type(3) .cg-article-thumb{background:var(--tint-2);}
+.cg-article-card:nth-of-type(4){grid-area:card3;}
+.cg-article-card:nth-of-type(4) .cg-article-thumb{background:var(--tint-3);}
+.cg-article-card:nth-of-type(5){grid-area:card4;}
+.cg-article-card:nth-of-type(5) .cg-article-thumb{background:var(--green-soft);}
+
+@media (max-width:860px){
+  .cg-article-grid{grid-template-columns:1fr 1fr;grid-template-areas:"feat feat" "card1 card2" "card3 card4";}
+  .cg-article-feat .cg-article-thumb{min-height:130px;}
+}
+@media (max-width:560px){
+  .cg-article-grid{grid-template-columns:1fr;grid-template-areas:"feat" "card1" "card2" "card3" "card4";}
+}
 
 /* ---------- CTA ---------- */
 .cg-cta{text-align:center;padding:clamp(56px,9vw,80px) 0;position:relative;}

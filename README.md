@@ -1,16 +1,153 @@
-# React + Vite
+<!--
+  초안입니다. 자기소개서 작성 참고용으로 먼저 채워둔 버전이라
+  스크린샷·최종 배포 링크·라이선스 등은 Phase 7(배포) 마무리 때 다시 정리할 예정입니다.
+-->
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+# InnerBeauty Checker
 
-Currently, two official plugins are available:
+건강기능식품 성분표에서 **처음 보는 원료 이름**을 만났을 때, 그게 뭐고 안전한지 확인해주는 웹 서비스.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+제품명을 검색하면 원재료를 하나씩 분석해서 기능성원료·첨가물·식품 원료·미확인으로 자동 분류하고, 그중에서도 **낯선 원료를 눈에 띄게 강조**하는 데 초점을 둔다.
 
-## React Compiler
+> 배포: (Phase 7 진행 중) — Vercel(프론트) + Railway(백엔드)
+> 저장소: `github.com/withwizz1-spec/innerbeauty-checker`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 왜 만들었나
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+비타민C·루테인·오메가3처럼 이미 유명하고 식약처 판정도 끝난 성분을 비교·정렬해주는 서비스는 이미 많다. 하지만 실제로 사용자가 성분표 앞에서 막히는 순간은 따로 있다 — **"카복시메틸셀룰로스칼슘"처럼 처음 보는 이름**을 만났을 때다. 유명한 성분 비교가 아니라, 낯선 원료 하나하나에 "이게 뭔지" 답을 주는 방향으로 설계했다.
+
+경쟁 서비스(푸드스캐너, 2026.03 출시) 대비 차별화 포인트:
+
+| 포인트 | 내용 |
+|---|---|
+| 제품 이미지 노출 | 동명 제품 혼동 방지 (경쟁 서비스는 제조사명만 표시, 이미지 없음) |
+| 건강기능식품 특화 DB | 식약처 공공 API 기반, 올리브영·약국 유통 제품 커버 |
+| 성분 간 상호작용 분석 | A+B 성분을 함께 섭취할 때의 시너지/주의사항 제공 |
+| 개인 맞춤 필터 | 임산부·노인·알레르기 19종 등 상황별 주의 성분 강조 |
+| 건강기능식품 / 건강보조식품 구분 | 식약처 정식 인증 여부를 자동 판별해 뱃지로 표시 |
+
+---
+
+## 핵심 기능
+
+- **제품명 검색** — 식약처 공공 API(식품안전나라 C003/C002, HACCP, 수입식품) 4개 소스를 순회하며 조회. 건강기능식품에 없으면 건강보조식품 경로로 자동 폴백
+- **원재료 자동 분류 + 등급 판정** — 기능성원료(249개 사전 + 제품별 공식 기능성 문구) / 첨가물 / 식품 원료 / 미확인 4종 분류, 경고·안전·미확인 3단계 등급
+- **알레르기·논란 첨가물 하이라이트** — 식약처 공식 표시대상 21종 + 해외(WHO/IARC 등) 논란 첨가물 6종
+- **개인화** — 회원가입/로그인(JWT), 임산부·노인 모드, 알레르기 다중 선택 → 원재료 칩에 실시간 하이라이트
+- **찜하기 + 궁합 분석** — 복용 중인 제품을 저장하고, 체크한 제품끼리만 성분 상호작용(시너지/주의) 확인
+- **검색 결과 필터·정렬** — 인증 건강기능식품만 / 낯선 원료 포함 / 알레르기 제외, 낯선 원료 많은 순 정렬
+- **백그라운드 캐시 동기화** — 인기 제품 키워드를 1시간마다 미리 검색해 캐시를 채워둠 (APScheduler)
+
+---
+
+## 기술 스택
+
+| 영역 | 사용 기술 |
+|---|---|
+| 프론트엔드 | React (Vite), 순수 CSS (디자인 토큰 기반) |
+| 백엔드 | Python, FastAPI |
+| DB | PostgreSQL (Railway 관리형, SQLite에서 마이그레이션) |
+| 인증 | JWT + bcrypt |
+| 스케줄링 | APScheduler (AsyncIOScheduler) |
+| 테스트 | pytest (백엔드 API 31건) |
+| 외부 데이터 | 식품안전나라 OpenAPI(C003/C002), 공공데이터포털(수입식품, HACCP) |
+| 배포 | Vercel(프론트) / Railway(백엔드 + Postgres) |
+
+### 왜 이 스택인가
+- **FastAPI**: 식약처 API 키를 프론트엔드에 노출하지 않기 위해 프록시 서버가 필요했고, 비동기 I/O가 외부 API 왕복이 잦은 이 구조에 맞다고 판단
+- **PostgreSQL(Railway)**: 처음엔 SQLite로 시작했지만, 포트폴리오 목적상 "관리형 DB로 마이그레이션한 경험"이 SQLite 파일 하나보다 어필에 유리하다고 판단해 전환
+
+---
+
+## 아키텍처
+
+```
+React (Vite)
+   │  fetch
+   ▼
+FastAPI (Railway)
+   │
+   ├── search_service.py ── 식품안전나라 C003/C002 ── (원재료 포함, 09~19시 제한 운영)
+   ├── data_go_kr.py ────── HACCP / 수입식품 API ──── (원재료 + 이미지, 시간 제한 없음)
+   ├── ingredients.py ───── 성분 분류 사전 (PostgreSQL)
+   ├── auth.py ──────────── 회원가입/로그인/개인화 설정
+   ├── favorites.py ─────── 찜 목록 (제품 정보 통째로 JSONB 저장)
+   ├── interactions.py ──── 성분 상호작용 사전
+   └── scheduler.py ──────── 인기 검색어 1시간마다 캐시 예열
+```
+
+검색 흐름: **C003(건강기능식품) → 0건/오류 시 HACCP → C002 → 수입식품 순으로 폴백**. 각 소스 응답을 C003 필드 형태로 정규화해 프론트 컴포넌트를 하나로 재사용한다.
+
+---
+
+## 기술적으로 부딪힌 문제들
+
+기능 목록보다 이 프로젝트에서 실제로 시간을 많이 쓴 지점들이다.
+
+### 1. 검색어가 "브랜드 + 제품명"이면 무조건 0건
+식약처 API는 제품명을 통째로 문자열 대조한다. 사용자가 실제로 치는 검색어(`이너랩 홀드잇`, `종근당건강 락토핏`)는 쇼핑몰 표기라 브랜드가 붙어 있어 전량 0건 처리됐다. 검색어를 토큰으로 분해해 병렬 재조회하고, 결과를 합치는 랭킹 로직을 만들었다.
+
+랭킹은 세 번 고쳐서야 실사용 검증을 통과했다:
+1. 단순 토큰 매칭 → 입력 순서(앞 단어)가 이겨서 원하는 제품이 뒤로 밀림
+2. 희소성(1/전체건수) 가중치 도입 → 이번엔 인기 제품군이 "흔한 단어" 취급받아 역효과
+3. **위치 기반 점수(뒤 토큰일수록 높은 점수) + 희소성·접두일치는 보조 신호로** → 두 상반된 실사용 케이스 모두 상위 노출 확인
+
+### 2. 서버 전체가 조용히 멈추는 half-open 커넥션
+실데이터 검증 중 모든 API가 5분 넘게 무응답이 되는 사건이 있었다. 원인은 중간 네트워크 장비가 DB 커넥션을 조용히 끊었는데 종료 신호가 오지 않은 half-open 상태 — 동기(blocking) DB 드라이버가 이걸 붙잡고 있어 비동기 이벤트 루프 전체가 멈췄다. `connect_timeout` + TCP keepalive + `statement_timeout`을 추가해 무응답 대신 수 초 내 502로 실패하도록 개선했다.
+
+### 3. 우유가 '미확인'으로 뜨는 문제 → 분류 체계 자체의 빈틈
+사전이 부족한 게 아니라, "기능성원료도 첨가물도 아니고 모르는 것도 아닌" 카테고리(식품 원료) 자체가 없었던 게 원인이었다. `식품 원료` 분류를 신설(110개)하고, 판정 순서를 다시 짜서(첨가물 → 기능성원료 → 식품 원료 순) 이름이 서로의 부분 문자열인 성분들(`대두` vs `대두레시틴`)이 잘못 걸리지 않게 했다.
+
+### 4. 외부 API 응답이 09~19시엔 불안정
+식품안전나라 OpenAPI가 특정 시간대에만 정상 동작하는 제약이 있어, 캐싱 전략(TTL 1시간)과 인기 키워드 예열(스케줄러)로 실사용 영향을 줄였다. 타임아웃 처리가 없어 원인불명 500으로 죽던 버그도 발견해 타임아웃/파싱 실패를 502/504로 명확히 구분했다.
+
+---
+
+## 실행 방법
+
+### 백엔드
+```bash
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # 식약처/공공데이터 API 키, DB 연결 정보 입력
+uvicorn main:app --reload
+```
+
+### 프론트엔드
+```bash
+npm install
+cp .env.local.example .env.local   # VITE_BACKEND_URL 등 설정
+npm run dev
+```
+
+### 테스트
+```bash
+cd backend
+pytest
+```
+
+---
+
+## 진행 상황
+
+- [x] Phase 1 — 기능 우선 웹앱 (검색, 상세, 성분 분류)
+- [x] Phase 2 — 백엔드 구축 (프록시 서버, API 키 보호)
+- [x] Phase 3 — 백엔드 심화 (DB, 인증, 스케줄러, 테스트)
+- [x] Phase 4 — 건강보조식품 원료 확보 (공공 API 4종 연동)
+- [x] Phase 5 — UI/UX 개선 (반응형, 디자인 시스템, 랜딩)
+- [ ] Phase 6 — OCR 스캔 (보류 — Claude Vision API 종량제 과금 구조 재검토 필요)
+- [ ] Phase 7 — 배포 (진행 중 — 배포 완료, 최종 스모크 테스트 남음)
+
+자세한 작업 이력은 `CLAUDE.md` 참고.
+
+---
+
+## TODO (초안이라 남겨둔 것들)
+
+- [ ] 스크린샷/데모 GIF 추가
+- [ ] 배포 URL 최종 확정 후 상단에 배지 추가
+- [ ] 프로젝트 구조(폴더 트리) 섹션
+- [ ] 라이선스

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import AppNav from './AppNav';
 import ImageScanUpload from './ImageScanUpload';
 import { fetchModeWarnings } from '../api/authApi';
@@ -9,6 +9,10 @@ import './capsule-layout-green.css';
 
 // InnerBeauty Checker — 캡슐 레이아웃 + 그린 톤앤매너 병합 버전
 // App.jsx의 screen === 'home' 분기에서 렌더링됨
+//
+// 히어로 구조(2026-08-20): 예전엔 히어로 / 확인 화면 미리보기 / 문제 카드 3개가 각각 별도 섹션이었는데,
+// "이 앱이 뭘 하는지"가 첫 화면에서 끝나도록 셋을 히어로 한 덩어리로 합쳤음.
+// 확인 카드는 이 앱의 결과물을 보여주는 유일한 실물이라 항상 고정 노출하고, 문제 카드만 그 아래에서 순환.
 
 // 브랜드명 일부를 마스킹한 예시 — 실제 성분명이 아니라 "어떤 제품을 검색하는지" 감이 오도록
 const SCAN_QUERIES = [
@@ -18,12 +22,78 @@ const SCAN_QUERIES = [
   '닥X린 주의성분 확인 중...',
 ];
 
+// "이런 경험, 있으신가요" — 예전 cg-problems 섹션의 문구를 그대로 옮김
+const PROBLEM_CARDS = [
+  {
+    badge: '인증여부',
+    question: '공동구매로 샀는데, 이거 진짜 건강기능식품 맞을까? 🧐',
+    answer: '식약처에 등록된 제품인지 조회해, 정식 인증 제품인지 일반 가공식품인지 뱃지로 구분해드려요.',
+  },
+  {
+    badge: '위험성분',
+    question: '원재료명이 깨알같아서 뭐가 위험한건지 모르겠어..🥹',
+    answer: '원재료를 하나씩 쪼개서 알레르기 유발물질과 해외 논란 성분을 표시하고, 성분마다 등급을 매겨드려요.',
+  },
+  {
+    badge: '맞춤 필터',
+    question: '임신 중인데 이거 먹어도 될까? 🥺',
+    answer: '임산부·노인 모드를 켜거나 내 알레르기 19종을 등록해두면, 주의할 성분만 눈에 띄게 표시해드려요.',
+  },
+];
+
+// 성분·건강식품 정보성 카드 — ⚠️ 아직 확정 전 자리표시용 내용이다.
+// 아직 정해지지 않은 것: 직접 작성할지 외부 기사 링크만 걸지(요약 게시는 저작권 리스크),
+// 몇 개를 어떤 주제로 다룰지, 클릭 시 뜰 팝업 레이아웃. 읽는 시간(3분 등)도 임시값.
+const ARTICLES = [
+  {
+    key: 'cmc',
+    tag: '성분 상식',
+    icon: '🧪',
+    title: '카복시메틸셀룰로스칼슘, 알고 보면 흔한 증점제예요',
+    summary:
+      '이름은 낯설고 복잡해 보이지만, 식품 농도를 잡아주는 흔한 첨가물이에요. 낯선 이름 = 위험한 성분이 아닌 이유를 짚어봐요.',
+    meta: '성분 상식 · 3분',
+  },
+  {
+    key: 'unknown',
+    tag: '이 앱의 원칙',
+    icon: '❓',
+    title: "'미확인' 등급, 위험하다는 뜻이 아니에요",
+    summary: '공식 문구·사전에 없어 자동 분류를 못 했을 뿐, 이미 식약처 심사를 거친 원료예요.',
+    meta: '2분',
+  },
+  {
+    key: 'allergen',
+    tag: '제도',
+    icon: '🏷️',
+    title: '알레르기 표시대상 21종, 다 알고 계셨나요',
+    summary: '식약처가 정한 공식 표시 대상 성분을 한눈에 정리했어요.',
+    meta: '4분',
+  },
+  {
+    key: 'tocopherol',
+    tag: '성분 상식',
+    icon: '🔤',
+    title: '토코페롤 = 비타민E, 같은 성분 다른 이름들',
+    summary: '성분표에 이름이 여러 개로 등장하는 흔한 이유를 정리했어요.',
+    meta: '2분',
+  },
+  {
+    key: 'controversial',
+    tag: '해외 동향',
+    icon: '🌍',
+    title: '해외에서 논란이 됐던 첨가물 6가지',
+    summary: 'WHO·EU·영국 FSA 등에서 다뤄진 첨가물을 참고용으로 정리했어요.',
+    meta: '5분',
+  },
+];
+
 // "실제 확인 화면 미리보기" 카드 초기값 — 실제 데이터 로딩 전이나, 조회가 전부 실패했을 때의 fallback
 const FALLBACK_PREVIEW = {
   name: '프로폴리스 프로바이오틱스',
   isHealthFunctional: false,
   allergenNames: ['대두', '우유'],
-  cautionNames: ['카페인'],
+  unknownNames: ['카복시메틸셀룰로스칼슘'],
   pregnancyHit: true,
 };
 
@@ -36,18 +106,24 @@ async function buildPreview() {
   const pregnantWarnings = await fetchModeWarnings('pregnant').catch(() => ({}));
   const ingredients = parseIngredients(product.RAWMTRL_NM, product.PRIMARY_FNCLTY);
   const allergenNames = [...new Set(ingredients.flatMap((i) => i.allergens))];
-  const cautionNames = ingredients
-    .filter((i) => i.grade === 'warning' && i.allergens.length === 0)
-    .map((i) => i.name);
+  // 이 앱의 핵심 차별점 — 사전에도 공식 문구에도 없어 자동 분류가 안 된 '낯선 원료'
+  const unknownNames = ingredients.filter((i) => i.category === 'unknown').map((i) => i.name);
   const pregnancyHit = ingredients.some((i) => pregnantWarnings[i.name]);
 
   return {
     name: maskBrandName(product.PRDLST_NM),
     isHealthFunctional: !product._source,
     allergenNames,
-    cautionNames,
+    unknownNames,
     pregnancyHit,
   };
+}
+
+// 여러 개일 때 "첫 번째 외 N개"로 줄여서 한 줄에 들어가게 함
+function summarizeNames(names, emptyText) {
+  if (!names || names.length === 0) return emptyText;
+  if (names.length === 1) return names[0];
+  return `${names[0]} 외 ${names.length - 1}개`;
 }
 
 function useRevealOnScroll() {
@@ -75,10 +151,17 @@ function useRevealOnScroll() {
   return rootRef;
 }
 
-function useTypingSearch() {
+// paused가 true면 타이핑을 멈추고 문구를 비움 — 사용자가 검색창을 클릭해 직접 입력하려는 순간에
+// placeholder가 계속 바뀌면 방해가 되기 때문
+function useTypingSearch(paused) {
   const [text, setText] = useState('');
 
   useEffect(() => {
+    if (paused) {
+      setText('');
+      return;
+    }
+
     let pIndex = 0;
     let cIndex = 0;
     let deleting = false;
@@ -107,9 +190,140 @@ function useTypingSearch() {
 
     tick();
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [paused]);
 
   return text;
+}
+
+// 검색 결과 화면과 같은 항목을 보여주는 미리보기 카드 (항상 고정 노출)
+function ProductCheckCard({ preview }) {
+  return (
+    <div className="cg-check-card">
+      <div className="cg-check-top">
+        <span>지금 확인 중</span>
+        <strong>{preview.name}</strong>
+      </div>
+      <div className="cg-check-bar">
+        <div className="cg-check-bar-fill" />
+      </div>
+
+      <div className="cg-check-row">
+        <span className="cg-check-label">인증 구분</span>
+        <span className={`cg-check-value ${preview.isHealthFunctional ? 'cg-v-ok' : 'cg-v-warn'}`}>
+          {preview.isHealthFunctional ? '건강기능식품 인증' : '건강기능식품 아님'}
+        </span>
+      </div>
+      <div className="cg-check-row">
+        <span className="cg-check-label">알레르기 유발성분</span>
+        <span className={`cg-check-value ${preview.allergenNames.length > 0 ? 'cg-v-danger' : 'cg-v-ok'}`}>
+          {preview.allergenNames.length > 0 ? `${preview.allergenNames.join(', ')} 포함` : '해당 없음'}
+        </span>
+      </div>
+      {/* '낯선 원료'는 이 앱의 핵심 차별점이라 다른 줄과 구분되게 강조 */}
+      <div className="cg-check-row cg-check-row-key">
+        <span className="cg-check-label">낯선 원료</span>
+        <span className="cg-check-value cg-v-key">
+          {summarizeNames(preview.unknownNames, '없음')}
+        </span>
+      </div>
+      <div className="cg-check-row">
+        <span className="cg-check-label">임산부 섭취</span>
+        <span className={`cg-check-value ${preview.pregnancyHit ? 'cg-v-danger' : 'cg-v-ok'}`}>
+          {preview.pregnancyHit ? '권장하지 않음' : '섭취 가능'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// 문제 카드 캐러셀 — 자동으로 넘어가되 마우스를 올리거나 키보드 포커스가 들어오면 멈춤
+function ProblemCarousel() {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [height, setHeight] = useState(null);
+  const slideRefs = useRef([]);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % PROBLEM_CARDS.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [paused]);
+
+  // 카드마다 문장 길이가 달라 높이가 제각각 — 보이는 영역을 현재 카드 높이에 맞춰 따라가게 함
+  // (가장 긴 카드에 맞추면 짧은 카드에서 빈 공간이 생김)
+  useLayoutEffect(() => {
+    function sync() {
+      const el = slideRefs.current[index];
+      if (el) setHeight(el.offsetHeight);
+    }
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, [index]);
+
+  function move(step) {
+    setIndex((i) => (i + step + PROBLEM_CARDS.length) % PROBLEM_CARDS.length);
+  }
+
+  return (
+    <div
+      className="cg-q-carousel"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <button type="button" className="cg-q-arrow cg-q-arrow-prev" onClick={() => move(-1)} aria-label="이전 카드">
+        ‹
+      </button>
+      <button type="button" className="cg-q-arrow cg-q-arrow-next" onClick={() => move(1)} aria-label="다음 카드">
+        ›
+      </button>
+
+      <div className="cg-q-viewport" style={height ? { height } : undefined}>
+        <div
+          className="cg-q-track"
+          style={{ transform: `translateX(-${index * (100 / PROBLEM_CARDS.length)}%)` }}
+        >
+          {PROBLEM_CARDS.map((card, i) => (
+            <div
+              className="cg-q-slide"
+              key={card.badge}
+              ref={(el) => {
+                slideRefs.current[i] = el;
+              }}
+            >
+              <div className="cg-q-card">
+                <span className="cg-q-badge">
+                  <span className="cg-capsule cg-q-badge-capsule" />
+                  {card.badge}
+                </span>
+                <div className="cg-q-row">
+                  <span className="cg-q-person" />
+                  <span className="cg-q-bubble">{card.question}</span>
+                </div>
+                <p className="cg-q-answer">{card.answer}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="cg-q-dots">
+        {PROBLEM_CARDS.map((card, i) => (
+          <button
+            type="button"
+            key={card.badge}
+            className={i === index ? 'active' : ''}
+            onClick={() => setIndex(i)}
+            aria-label={`${i + 1}번 카드`}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function CapsuleLayoutGreen({
@@ -123,7 +337,8 @@ export default function CapsuleLayoutGreen({
   favoriteCount,
 }) {
   const rootRef = useRevealOnScroll();
-  const searchText = useTypingSearch();
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchText = useTypingSearch(searchFocused);
   const [activeTab, setActiveTab] = useState('search'); // 'search' | 'scan'
   const [preview, setPreview] = useState(FALLBACK_PREVIEW);
 
@@ -164,153 +379,111 @@ export default function CapsuleLayoutGreen({
 
       <header className="cg-hero">
         <div className="cg-container cg-hero-inner">
-          <span className="cg-float-capsule cg-fc1" />
-          <span className="cg-float-capsule cg-fc2" />
-          <span className="cg-float-capsule cg-fc3" />
+          <div className="cg-hero-grid">
+            <div className="cg-hero-left">
+              {/* 떠다니는 캡슐 — 왼쪽 칼럼 기준으로 배치. 예전엔 히어로 전체 기준 right였는데,
+                  2단이 되면서 오른쪽 확인 카드 위에 겹쳐서 제목 옆으로 옮김 */}
+              <span className="cg-float-capsule cg-fc1" />
+              <span className="cg-float-capsule cg-fc2" />
+              <span className="cg-float-capsule cg-fc3" />
 
-          <h1>
-            이 건강식품,<br />
-            진짜 <span className="cg-accent">인증받은 기능식품</span>이<br />
-            맞을까요?
-          </h1>
-          <p className="cg-hero-sub">
-            SNS 공동구매, 인플루언서 추천…<br />
-            정작 성분표는 아무도 읽지 않습니다.<br />
-            제품명만 넣으면 식약처에 등록된 진짜 정보를 확인해드려요.
-          </p>
+              <h1>
+                이 건강식품, 진짜<br />
+                <span className="cg-accent">인증받은 기능식품</span>이<br />
+                맞을까요?
+              </h1>
+              <p className="cg-hero-sub">
+                SNS 공동구매, 인플루언서 추천…<br />
+                정작 성분표는 아무도 읽지 않습니다.<br />
+                제품명만 넣으면 식약처에 등록된 진짜 정보를 확인해드려요.
+              </p>
 
-          <div id="cg-search" className="cg-hero-tabs">
-            <button
-              type="button"
-              className={`cg-hero-tab ${activeTab === 'search' ? 'active' : ''}`}
-              onClick={() => setActiveTab('search')}
-            >
-              제품명 검색
-            </button>
-            <button
-              type="button"
-              className={`cg-hero-tab ${activeTab === 'scan' ? 'active' : ''}`}
-              onClick={() => setActiveTab('scan')}
-            >
-              성분표 스캔
-            </button>
-          </div>
-
-          {activeTab === 'scan' ? (
-            <div className="cg-hero-scan">
-              <ImageScanUpload />
-            </div>
-          ) : (
-            <form className="cg-hero-search" onSubmit={onSearch}>
-              <div className="cg-hero-search-box">
-                <input
-                  id="cg-hero-search-input"
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => onKeywordChange(e.target.value)}
-                  placeholder={searchText}
-                />
+              <div id="cg-search" className="cg-hero-tabs">
+                <button
+                  type="button"
+                  className={`cg-hero-tab ${activeTab === 'search' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('search')}
+                >
+                  제품명 검색
+                </button>
+                <button
+                  type="button"
+                  className={`cg-hero-tab ${activeTab === 'scan' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('scan')}
+                >
+                  성분표 스캔
+                </button>
               </div>
-              <button type="submit" className="cg-hero-search-btn">성분 확인</button>
-            </form>
-          )}
 
-          {/* 신뢰 칩 — 원래 페이지 하단에 있던 것을 히어로로 올림 */}
-          <div className="cg-hero-tags">
-            <span className="cg-hero-tag">
-              <span className="cg-capsule" style={{ width: 16, height: 8 }} />
-              <span><strong>식약처 공공데이터포털</strong> 기반 데이터</span>
-            </span>
-            <span className="cg-hero-tag">
-              <span className="cg-capsule" style={{ width: 16, height: 8 }} />
-              <span>올리브영·약국 유통 제품 커버</span>
-            </span>
-            <span className="cg-hero-tag">
-              <span className="cg-capsule" style={{ width: 16, height: 8 }} />
-              <span>원재료 성분별 안전성 분석</span>
-            </span>
+              {activeTab === 'scan' ? (
+                <div className="cg-hero-scan">
+                  <ImageScanUpload />
+                </div>
+              ) : (
+                <form className="cg-hero-search" onSubmit={onSearch}>
+                  <div className="cg-hero-search-box">
+                    <input
+                      id="cg-hero-search-input"
+                      type="text"
+                      value={keyword}
+                      onChange={(e) => onKeywordChange(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onBlur={() => setSearchFocused(false)}
+                      placeholder={searchText}
+                      aria-label="제품명 검색"
+                    />
+                  </div>
+                  <button type="submit" className="cg-hero-search-btn">성분 확인</button>
+                </form>
+              )}
+
+              {/* 신뢰 칩 — 원래 페이지 하단에 있던 것을 히어로로 올림 */}
+              <div className="cg-hero-tags">
+                <span className="cg-hero-tag">
+                  <span className="cg-capsule" style={{ width: 16, height: 8 }} />
+                  <span><strong>식약처 공공데이터포털</strong> 기반 데이터</span>
+                </span>
+                <span className="cg-hero-tag">
+                  <span className="cg-capsule" style={{ width: 16, height: 8 }} />
+                  <span>올리브영·약국 유통 제품 커버</span>
+                </span>
+                <span className="cg-hero-tag">
+                  <span className="cg-capsule" style={{ width: 16, height: 8 }} />
+                  <span>원재료 성분별 안전성 분석</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="cg-hero-right">
+              <ProductCheckCard preview={preview} />
+              <ProblemCarousel />
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="cg-scan">
+      <section className="cg-articles">
         <div className="cg-container">
-          <div className="cg-section-eyebrow cg-reveal">실제 확인 화면 미리보기</div>
-          <h2 className="cg-section-title cg-reveal">검색 한 번이면, 이렇게 보여드려요</h2>
-
-          <div className="cg-scan-wrap cg-reveal">
-            <div className="cg-scan-input">
-              <div className="cg-scan-product">
-                지금 확인 중
-                <strong>{preview.name}</strong>
-              </div>
-              <div className="cg-scan-progress">
-                <div className="cg-scan-progress-bar" />
-              </div>
-              <div className="cg-scan-status">식약처 데이터베이스 대조 중…</div>
-            </div>
-            <div className="cg-scan-result">
-              <div className="cg-scan-result-row">
-                <span className="cg-scan-result-label">인증 구분</span>
-                <span className={`cg-scan-result-value ${preview.isHealthFunctional ? 'cg-v-ok' : 'cg-v-warn'}`}>
-                  {preview.isHealthFunctional ? '건강기능식품 인증' : '건강기능식품 아님'}
-                </span>
-              </div>
-              <div className="cg-scan-result-row">
-                <span className="cg-scan-result-label">알레르기 유발성분</span>
-                <span className={`cg-scan-result-value ${preview.allergenNames.length > 0 ? 'cg-v-danger' : 'cg-v-ok'}`}>
-                  {preview.allergenNames.length > 0 ? `${preview.allergenNames.join(', ')} 포함` : '해당 없음'}
-                </span>
-              </div>
-              <div className="cg-scan-result-row">
-                <span className="cg-scan-result-label">주의성분</span>
-                <span className={`cg-scan-result-value ${preview.cautionNames.length > 0 ? 'cg-v-warn' : 'cg-v-ok'}`}>
-                  {preview.cautionNames.length > 0 ? `${preview.cautionNames.join(', ')} 함유` : '특이사항 없음'}
-                </span>
-              </div>
-              <div className="cg-scan-result-row">
-                <span className="cg-scan-result-label">임산부 섭취</span>
-                <span className={`cg-scan-result-value ${preview.pregnancyHit ? 'cg-v-danger' : 'cg-v-ok'}`}>
-                  {preview.pregnancyHit ? '권장하지 않음' : '섭취 가능'}
-                </span>
-              </div>
-            </div>
+          <div className="cg-articles-head cg-reveal">
+            <h2 className="cg-section-title">요즘 건강식품, 이런 이야기가 있어요</h2>
+            <span className="cg-articles-eyebrow">INGREDIENT NEWS</span>
           </div>
-        </div>
-      </section>
 
-      <section className="cg-problems">
-        <div className="cg-container">
-          <div className="cg-section-eyebrow cg-reveal">이런 경험, 있으신가요</div>
-          <h2 className="cg-section-title cg-reveal">
-            전문가도, 인플루언서도 아닌<br />내가 직접 확인할 수 있어야 합니다
-          </h2>
-          {/* 문제(사용자 질문) → 해결(기능)을 카드 하나에 묶음 — 예전 '핵심 기능' 섹션을 여기로 병합 */}
-          <div className="cg-problem-grid">
-            <div className="cg-problem-card cg-reveal">
-              <div className="cg-problem-card-head">
-                <span className="cg-capsule cg-problem-num-capsule" />
-                <span className="cg-problem-badge">인증여부</span>
-              </div>
-              <h3>&quot;공동구매로 샀는데, 이거 진짜 건강기능식품 맞나?&quot;</h3>
-              <p>식약처에 등록된 제품인지 조회해, 정식 인증 제품인지 일반 가공식품인지 뱃지로 구분해드려요.</p>
-            </div>
-            <div className="cg-problem-card cg-reveal">
-              <div className="cg-problem-card-head">
-                <span className="cg-capsule cg-problem-num-capsule" />
-                <span className="cg-problem-badge">위험성분</span>
-              </div>
-              <h3>&quot;원재료명이 깨알같은데, 뭐가 위험한 건지 모르겠다&quot;</h3>
-              <p>원재료를 하나씩 쪼개서 알레르기 유발물질과 해외 논란 성분을 표시하고, 성분마다 등급을 매겨드려요.</p>
-            </div>
-            <div className="cg-problem-card cg-reveal">
-              <div className="cg-problem-card-head">
-                <span className="cg-capsule cg-problem-num-capsule" />
-                <span className="cg-problem-badge">맞춤 필터</span>
-              </div>
-              <h3>&quot;임신 중인데 이거 먹어도 되나?&quot;</h3>
-              <p>임산부·노인 모드를 켜거나 내 알레르기 19종을 등록해두면, 주의할 성분만 눈에 띄게 표시해드려요.</p>
-            </div>
+          <div className="cg-article-grid">
+            {ARTICLES.map((article, i) => (
+              <article
+                key={article.key}
+                className={`cg-article-card cg-reveal ${i === 0 ? 'cg-article-feat' : ''}`}
+              >
+                <div className="cg-article-thumb">{article.icon}</div>
+                <div className="cg-article-body">
+                  <span className="cg-article-tag">{article.tag}</span>
+                  <h3>{article.title}</h3>
+                  <p>{article.summary}</p>
+                  <span className="cg-article-meta">{article.meta}</span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
