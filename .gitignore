@@ -33,3 +33,6 @@ backend/.pytest_cache
 *.njsproj
 *.sln
 *.sw?
+
+# 원료 분석용 대용량 원본 덤프 (재수집 가능, 커밋 불필요)
+backend/data/

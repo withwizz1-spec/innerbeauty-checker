@@ -17,6 +17,20 @@ const ADDITIVE_PATTERNS = [
   /검$/, /왁스$/, /배당체$/,
 ]
 
+// 기능성원료 힌트 — 사전에 없어도 이름 형태만으로 확실히 알 수 있는 두 무리.
+// 전수 조사(C003 44,691건)에서 미확인 성분을 빈도순으로 묶어보니 이 둘이 미확인의
+// 19%를 차지했는데, 개별 이름을 사전에 넣는 것보다 패턴 한 줄이 훨씬 효율적이었음.
+const FUNCTIONAL_PATTERNS = [
+  // 프로바이오틱스 학명 — 원재료명에 라틴어 학명이 그대로 적히는 경우가 많음
+  // (Lactobacillus 속이 2020년에 여러 속으로 재분류되어 표기가 다양함:
+  //  Lactiplantibacillus / Lacticaseibacillus / Limosilactobacillus / Levilactobacillus …)
+  /^(lacto|lacti|limosi|levi|ligi|latil|loigo|companil|furfuril|secundil|apilacto|paucilacto)/i,
+  /^(bifido|strepto|bacillus|lactococcus|leuconostoc|pediococcus|weissella|enterococcus|saccharomyces)/i,
+  // L-아미노산 — L-아르지닌·L-카르니틴·L-프롤린 등.
+  // D-/DL- 은 제외: 'D-말티톨'처럼 당알코올 감미료(첨가물)가 섞여 들어옴
+  /^L-/,
+]
+
 // 제품의 "기능성"(PRIMARY_FNCLTY) 텍스트는 "[성분명]역할설명" 형태 — 식약처가 이
 // 제품에 대해 공식으로 인정한 기능성원료가 대괄호 라벨로 명시되어 있음. 하드코딩
 // 사전보다 신뢰도 높은 근거이므로 categorize()에서 최우선으로 확인함
@@ -49,6 +63,12 @@ export function categorize(name, primaryFnclty) {
     return 'additive'
   }
   if (matchDict(clean, 'functional')) {
+    return 'functional'
+  }
+  // 사전에 없어도 형태로 알 수 있는 기능성원료(유산균 학명·L-아미노산).
+  // 첨가물 사전·패턴보다 뒤에 두면 안전한 이유: 위 첨가물 사전을 이미 통과했고,
+  // 아래 첨가물 패턴(색소/향/스테아린산 등)은 라틴어 학명·L- 접두와 겹치지 않음
+  if (FUNCTIONAL_PATTERNS.some((p) => p.test(clean))) {
     return 'functional'
   }
   // 첨가물 이름 패턴을 식품 원료보다 먼저 확인 — '키위향'은 향료(첨가물)인데
