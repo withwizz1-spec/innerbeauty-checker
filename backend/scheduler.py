@@ -6,8 +6,19 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from db import get_connection
 from search_service import search_products
 
-# 자주 검색될 만한 키워드를 미리 캐싱해두는 대상 목록 — 1차 버전
-POPULAR_KEYWORDS = ["비타민C", "오메가3", "유산균", "홍삼", "루테인"]
+# 자주 검색될 만한 키워드를 미리 캐싱해두는 대상 목록
+# 이 앱은 "성분 사전"이 아니라 "제품 확인" 서비스라 사용자가 실제로 치는 건 제품/브랜드명 —
+# 성분명 위주였던 1차 버전을 제품명 중심으로 교체함
+# 반드시 한 단어로 둘 것: "종근당건강 락토핏"처럼 붙이면 식약처가 0건을 뱉어
+# search_service의 분해 재시도를 타서 호출 수가 몇 배로 늘어남
+POPULAR_KEYWORDS = [
+    "락토핏",
+    "이너랩",
+    "비비랩",
+    "닥터린",
+    "홀드잇",
+    "유산균",
+]
 
 scheduler = AsyncIOScheduler()
 
