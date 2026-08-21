@@ -31,7 +31,7 @@ const FUNCTIONAL_PATTERNS = [
   // (Lactobacillus 속이 2020년에 여러 속으로 재분류되어 표기가 다양함:
   //  Lactiplantibacillus / Lacticaseibacillus / Limosilactobacillus / Levilactobacillus …)
   /^(lacto|lacti|limosi|levi|ligi|latil|loigo|companil|furfuril|secundil|apilacto|paucilacto)/i,
-  /^(bifido|strepto|bacillus|lactococcus|leuconostoc|pediococcus|weissella|enterococcus|saccharomyces)/i,
+  /^(bifido|strepto|bacillus|lactococcus|leuconostoc|pediococcus|weissella|enterococcus|saccharomyces|clostridium)/i,
   // L-아미노산 — L-아르지닌·L-카르니틴·L-프롤린 등.
   // D-/DL- 은 제외: 'D-말티톨'처럼 당알코올 감미료(첨가물)가 섞여 들어옴
   /^L-/,
