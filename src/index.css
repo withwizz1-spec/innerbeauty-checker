@@ -1010,7 +1010,7 @@ button.btn-plain:hover {
   color: var(--brand-strong);
 }
 
-/* 알레르기 다중 선택 — 원형 아이콘 그리드 (21종이 다 펼쳐져도 조잡해 보이지 않도록 촘촘히 배치) */
+/* 알레르기 다중 선택 — 원형 아이콘 그리드 (19종이 다 펼쳐져도 조잡해 보이지 않도록 촘촘히 배치) */
 .allergen-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));

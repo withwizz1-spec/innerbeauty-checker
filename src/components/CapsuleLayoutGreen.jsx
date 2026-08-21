@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import AppNav from './AppNav';
+import Modal from './Modal';
 import ImageScanUpload from './ImageScanUpload';
 import { fetchModeWarnings } from '../api/authApi';
 import { fetchPreviewProduct } from '../utils/getPreviewProduct';
 import { maskBrandName } from '../utils/maskBrandName';
 import { parseIngredients } from '../utils/parseIngredients';
+import { ARTICLES } from '../data/articles';
 import './capsule-layout-green.css';
 
 // InnerBeauty Checker — 캡슐 레이아웃 + 그린 톤앤매너 병합 버전
@@ -38,53 +40,6 @@ const PROBLEM_CARDS = [
     badge: '맞춤 필터',
     question: '임신 중인데 이거 먹어도 될까? 🥺',
     answer: '임산부·노인 모드를 켜거나 내 알레르기 19종을 등록해두면, 주의할 성분만 눈에 띄게 표시해드려요.',
-  },
-];
-
-// 성분·건강식품 정보성 카드 — ⚠️ 아직 확정 전 자리표시용 내용이다.
-// 아직 정해지지 않은 것: 직접 작성할지 외부 기사 링크만 걸지(요약 게시는 저작권 리스크),
-// 몇 개를 어떤 주제로 다룰지, 클릭 시 뜰 팝업 레이아웃. 읽는 시간(3분 등)도 임시값.
-const ARTICLES = [
-  {
-    key: 'cmc',
-    tag: '성분 상식',
-    icon: '🧪',
-    title: '카복시메틸셀룰로스칼슘, 알고 보면 흔한 증점제예요',
-    summary:
-      '이름은 낯설고 복잡해 보이지만, 식품 농도를 잡아주는 흔한 첨가물이에요. 낯선 이름 = 위험한 성분이 아닌 이유를 짚어봐요.',
-    meta: '성분 상식 · 3분',
-  },
-  {
-    key: 'unknown',
-    tag: '이 앱의 원칙',
-    icon: '❓',
-    title: "'미확인' 등급, 위험하다는 뜻이 아니에요",
-    summary: '공식 문구·사전에 없어 자동 분류를 못 했을 뿐, 이미 식약처 심사를 거친 원료예요.',
-    meta: '2분',
-  },
-  {
-    key: 'allergen',
-    tag: '제도',
-    icon: '🏷️',
-    title: '알레르기 표시대상 21종, 다 알고 계셨나요',
-    summary: '식약처가 정한 공식 표시 대상 성분을 한눈에 정리했어요.',
-    meta: '4분',
-  },
-  {
-    key: 'tocopherol',
-    tag: '성분 상식',
-    icon: '🔤',
-    title: '토코페롤 = 비타민E, 같은 성분 다른 이름들',
-    summary: '성분표에 이름이 여러 개로 등장하는 흔한 이유를 정리했어요.',
-    meta: '2분',
-  },
-  {
-    key: 'controversial',
-    tag: '해외 동향',
-    icon: '🌍',
-    title: '해외에서 논란이 됐던 첨가물 6가지',
-    summary: 'WHO·EU·영국 FSA 등에서 다뤄진 첨가물을 참고용으로 정리했어요.',
-    meta: '5분',
   },
 ];
 
@@ -341,6 +296,7 @@ export default function CapsuleLayoutGreen({
   const searchText = useTypingSearch(searchFocused);
   const [activeTab, setActiveTab] = useState('search'); // 'search' | 'scan'
   const [preview, setPreview] = useState(FALLBACK_PREVIEW);
+  const [openArticle, setOpenArticle] = useState(null);
 
   // 방문 시 한 번, 인기 브랜드로 실제 검색해 미리보기 카드를 실데이터로 교체 (실패하면 fallback 유지)
   useEffect(() => {
@@ -471,18 +427,20 @@ export default function CapsuleLayoutGreen({
 
           <div className="cg-article-grid">
             {ARTICLES.map((article, i) => (
-              <article
+              <button
+                type="button"
                 key={article.key}
                 className={`cg-article-card cg-reveal ${i === 0 ? 'cg-article-feat' : ''}`}
+                onClick={() => setOpenArticle(article)}
               >
                 <div className="cg-article-thumb">{article.icon}</div>
                 <div className="cg-article-body">
                   <span className="cg-article-tag">{article.tag}</span>
                   <h3>{article.title}</h3>
                   <p>{article.summary}</p>
-                  <span className="cg-article-meta">{article.meta}</span>
+                  <span className="cg-article-meta">{article.readingTime}</span>
                 </div>
-              </article>
+              </button>
             ))}
           </div>
         </div>
@@ -495,6 +453,30 @@ export default function CapsuleLayoutGreen({
           <a href="#cg-search" className="cg-cta-btn cg-reveal" onClick={scrollToSearch}>지금 내 영양제 확인하기 →</a>
         </div>
       </section>
+
+      <Modal
+        open={Boolean(openArticle)}
+        title={openArticle?.title ?? ''}
+        onClose={() => setOpenArticle(null)}
+      >
+        {openArticle && (
+          <div className="cg-article-read">
+            <span className="cg-article-tag">{openArticle.tag}</span>
+            {openArticle.body.map((block, i) =>
+              block.list ? (
+                <ul key={i}>
+                  {block.list.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p key={i}>{block.text}</p>
+              )
+            )}
+            {openArticle.source && <p className="cg-article-source">출처 · {openArticle.source}</p>}
+          </div>
+        )}
+      </Modal>
 
       <footer>
         <div className="cg-container cg-footer-inner">

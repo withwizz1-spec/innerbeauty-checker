@@ -87,7 +87,7 @@ function buildUnknownFacts(ingredient) {
     facts.push({
       icon: '🔍',
       lead: '알레르기·해외 논란 목록에는 없어요.',
-      text: '식약처 표시 대상 21종과 해외 논란 6종 어디에도 해당하지 않아요.',
+      text: '식약처 표시 대상 19종과 해외 논란 6종 어디에도 해당하지 않아요.',
     })
   }
   return facts
@@ -254,7 +254,7 @@ function IngredientDetail({ ingredient, primaryFnclty, modeWarningReason }) {
       {/* 경고 사유를 역할보다 먼저 — 사용자가 팝업을 여는 이유가 대부분 이것 */}
       {ingredient.allergens.length > 0 && (
         <Section title="알레르기 유발물질">
-          {ingredient.allergens.join(', ')} — 식약처가 표시 대상으로 지정한 21종 중 하나예요.
+          {ingredient.allergens.join(', ')} — 식약처가 표시 대상으로 지정한 19종 중 하나예요.
           <p className="ing-source">참고 기관: 식품의약품안전처</p>
         </Section>
       )}

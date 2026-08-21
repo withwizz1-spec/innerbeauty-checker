@@ -14,7 +14,7 @@ function summarize(product, myAllergies) {
     // '낯선 원료' = 공식 기능성 문구에도 없고 분류 사전에도 없어 자동 분류가 안 된 원료
     unknownCount: parsed.filter((i) => i.category === 'unknown').length,
     warningCount: parsed.filter((i) => i.grade === 'warning').length,
-    // 개인 알레르기를 설정했으면 그 목록 기준, 아니면 표시대상 21종 전체 기준
+    // 개인 알레르기를 설정했으면 그 목록 기준, 아니면 표시대상 19종 전체 기준
     hasAllergen: myAllergies.length
       ? allergenHits.some((a) => myAllergies.includes(a))
       : allergenHits.length > 0,
